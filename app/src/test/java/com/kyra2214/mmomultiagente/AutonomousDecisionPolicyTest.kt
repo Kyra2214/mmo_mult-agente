@@ -8,7 +8,7 @@ class AutonomousDecisionPolicyTest {
         assertEquals(
             AutonomousAction.CRAFT,
             AutonomousDecisionPolicy.choose(
-                mapOf("Barra T1" to 2, "Couro Curtido T1" to 1, "Prancha T1" to 1),
+                mapOf("Barra T1" to 2, "Couro Curtido T1" to 2, "Tecido T1" to 1),
                 100,
                 null
             )
