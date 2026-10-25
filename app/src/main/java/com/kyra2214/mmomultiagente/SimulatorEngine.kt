@@ -54,14 +54,15 @@ class SimulatorEngine(
 
     val currentObjective: String
         get() = when {
-            stage < npcs.size -> "Quest 1/8 — Conhecer a vila (" + (stage + 1) + "/11 NPCs)"
-            stage == 11 -> "Quest 2/8 — Aprender a coletar"
-            stage == 12 -> "Quest 3/8 — Aprender a caçar"
-            stage == 13 -> "Quest 4/8 — Fabricar o primeiro item"
-            stage == 14 -> "Quest 5/8 — Conhecer o baú"
-            stage == 15 -> "Quest 6/8 — Publicar uma oferta"
-            stage == 16 -> "Quest 7/8 — Avaliar o teleporte"
-            stage == 17 -> "Quest 8/8 — Conhecer a masmorra"
+            stage < npcs.size -> "Quest 1/9 — Conhecer a vila (" + (stage + 1) + "/12 NPCs)"
+            stage == 11 -> "Quest 1/9 — Conhecer a vila (12/12 NPCs)"
+            stage == 12 -> "Quest 2/9 — Aprender a coletar"
+            stage == 13 -> "Quest 3/9 — Aprender a caçar"
+            stage == 14 -> "Quest 4/9 — Fabricar o primeiro item"
+            stage == 15 -> "Quest 5/9 — Conhecer o baú"
+            stage == 16 -> "Quest 6/9 — Publicar uma oferta"
+            stage == 17 -> "Quest 7/9 — Avaliar o teleporte"
+            stage == 18 -> "Quest 8/9 — Conhecer a masmorra"
             else -> "Tutorial concluído — vida autônoma desbloqueada"
         }
 
@@ -360,18 +361,22 @@ class SimulatorEngine(
                 "Aldren conversa com " + npc.name + ": “" + npc.explanation + "”"
             }
             11 -> {
+                learnedNpcIds.add(repairNpc.id)
+                "Aldren conversa com ${repairNpc.name}: “${repairNpc.explanation}”"
+            }
+            12 -> {
                 inventory.addItem("Minério T1", 3)
                 inventory.addItem("Madeira T1", 3)
                 inventory.addItem("Fibra T1", 2)
                 "Coleta concluída: +3 Minério T1, +3 Madeira T1 e +2 Fibra T1. Os recursos vieram de uma fonte disponível."
             }
-            12 -> {
+            13 -> {
                 inventory.addItem("Couro T1", 2)
                 silver += 10
                 "Caçada concluída: criatura T1 derrotada. Aldren recebeu 2 Couros T1 e 10 alzes como recompensa."
             }
-            13 -> craftStarterArmor()
-            14 -> {
+            14 -> craftStarterArmor()
+            15 -> {
                 if (inventory.removeItem("Fibra T1", 1)) {
                     chest.addItem("Fibra T1", 1)
                     "Aldren guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
@@ -379,7 +384,7 @@ class SimulatorEngine(
                     "O baú foi apresentado. Não havia Fibra T1 sobrando; nenhuma quantidade foi criada."
                 }
             }
-            15 -> {
+            16 -> {
                 if (inventory.removeItem("Armadura T1", 1)) {
                     marketListing = "Armadura T1"
                     marketPrice = 25
@@ -389,7 +394,7 @@ class SimulatorEngine(
                     "Oferta não publicada: Aldren não possui Armadura T1 no inventário."
                 }
             }
-            16 -> {
+            17 -> {
                 val cost = 30
                 if (silver - cost < 20) {
                     "Decisão de transporte: ir a pé. O teleporte custa " + cost + " alzes e deixaria pouca reserva. Caminhar leva cerca de 25 minutos simulados; teleporte levaria 1."
@@ -398,7 +403,7 @@ class SimulatorEngine(
                     "Decisão de transporte: teleportar por " + cost + " alzes. O custo foi descontado do saldo."
                 }
             }
-            17 -> "Aldren conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
+            18 -> "Aldren conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
             else -> "Etapa sem ação definida."
         }
         addLog(message)
@@ -474,7 +479,7 @@ class SimulatorEngine(
     }
 
     companion object {
-        const val TOTAL_STAGES = 18
+        const val TOTAL_STAGES = 19
         private const val MAX_LOG_ENTRIES = 120
 
         fun loadFrom(preferences: android.content.SharedPreferences): SimulatorEngine {
