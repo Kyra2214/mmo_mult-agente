@@ -14,7 +14,7 @@ class SimulatorEngineTest {
 
     @Test fun gatheringAndHuntingCreateResourcesAndRewardSilver() {
         val engine = SimulatorEngine()
-        repeat(13) { engine.step() }
+        repeat(14) { engine.step() }
         assertEquals(3, engine.inventory["Minério T1"])
         assertEquals(3, engine.inventory["Madeira T1"])
         assertEquals(2, engine.inventory["Couro T1"])
@@ -23,7 +23,7 @@ class SimulatorEngineTest {
 
     @Test fun craftingConsumesMaterialsAndCreatesOneArmor() {
         val engine = SimulatorEngine()
-        repeat(14) { engine.step() }
+        repeat(15) { engine.step() }
         assertEquals(1, engine.inventory["Armadura T1"])
         assertEquals(2, engine.progression.snapshot(SkillId.ARMOR_CRAFTING).level)
         assertEquals(1, engine.inventory["Minério T1"])
@@ -33,7 +33,7 @@ class SimulatorEngineTest {
 
     @Test fun marketListingDoesNotCountAsSaleOrAddSilver() {
         val engine = SimulatorEngine()
-        repeat(16) { engine.step() }
+        repeat(17) { engine.step() }
         assertEquals("Armadura T1", engine.marketListing)
         assertEquals(110, engine.silver)
         assertFalse(engine.inventory.containsKey("Armadura T1"))
