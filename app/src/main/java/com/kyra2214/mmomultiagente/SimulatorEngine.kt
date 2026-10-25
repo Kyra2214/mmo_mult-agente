@@ -75,11 +75,13 @@ class SimulatorEngine(
     }
 
     private fun gatherNeededMaterials(): String {
-        data class GatherNeed(val raw: String, val processed: String, val skill: SkillId, val label: String)
+        data class GatherNeed(val raw: String, val processed: String, val skill: SkillId, val label: String, val batchSize: Int = 1)
         val needs = listOf(
-            GatherNeed("Minério", "Barra", SkillId.MINING, "minério"),
+            GatherNeed("Minério", "Barra", SkillId.MINING, "minério", 2),
+            GatherNeed("Pedra", "Bloco de Pedra", SkillId.STONE_GATHERING, "pedra"),
             GatherNeed("Madeira", "Prancha", SkillId.WOODCUTTING, "madeira"),
-            GatherNeed("Fibra", "Tecido", SkillId.FIBER_GATHERING, "fibra")
+            GatherNeed("Fibra", "Tecido", SkillId.FIBER_GATHERING, "fibra"),
+            GatherNeed("Fragmento Arcano", "Componente Arcano", SkillId.ARCANE_GATHERING, "fragmentos arcanos")
         )
         val gathered = mutableListOf<String>()
         needs.forEach { need ->
@@ -89,9 +91,9 @@ class SimulatorEngine(
             val hasRaw = (inventory[rawName] ?: 0) > 0
             val hasProcessed = (inventory[processedName] ?: 0) >= if (need.raw == "Minério") 2 else 1
             if (!hasRaw && !hasProcessed) {
-                inventory.addItem(rawName, if (need.raw == "Minério") 2 else 1)
+                inventory.addItem(rawName, need.batchSize)
                 progression.recordSuccessfulAction(need.skill, tier)
-                gathered.add("${if (need.raw == "Minério") 2 else 1} $rawName")
+                gathered.add("${need.batchSize} $rawName")
             }
         }
         return if (gathered.isNotEmpty()) {
@@ -134,7 +136,9 @@ class SimulatorEngine(
                 RefiningRecipe("Minério ${tier.name}", "Barra ${tier.name}", "refino de minério", SkillId.ORE_REFINING, tier),
                 RefiningRecipe("Madeira ${tier.name}", "Prancha ${tier.name}", "refino de madeira", SkillId.WOOD_REFINING, tier),
                 RefiningRecipe("Couro ${tier.name}", "Couro Curtido ${tier.name}", "curtume", SkillId.LEATHER_REFINING, tier),
-                RefiningRecipe("Fibra ${tier.name}", "Tecido ${tier.name}", "refino de fibras", SkillId.FIBER_REFINING, tier)
+                RefiningRecipe("Fibra ${tier.name}", "Tecido ${tier.name}", "refino de fibras", SkillId.FIBER_REFINING, tier),
+                RefiningRecipe("Pedra ${tier.name}", "Bloco de Pedra ${tier.name}", "refino de pedra", SkillId.STONE_REFINING, tier),
+                RefiningRecipe("Fragmento Arcano ${tier.name}", "Componente Arcano ${tier.name}", "refino arcano", SkillId.ARCANE_REFINING, tier)
             )
         }
         val recipe = recipes.firstOrNull { r ->
