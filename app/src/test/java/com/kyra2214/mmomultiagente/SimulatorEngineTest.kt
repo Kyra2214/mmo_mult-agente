@@ -127,7 +127,7 @@ class TierRecipeIntegrationTest {
 
 
 class TierAwareActivityTest {
-    @Test fun gatheringUsesTheHighestUnlockedTierForEachSpecialization() {
+    @Test fun gatheringDoesNotExceedTheSharedEquipmentTargetTier() {
         val engine = SimulatorEngine(
             stage = SimulatorEngine.TOTAL_STAGES,
             progressionSnapshots = mapOf(
@@ -135,7 +135,8 @@ class TierAwareActivityTest {
             )
         )
         engine.tick()
-        assertTrue((engine.inventory["Minério T2"] ?: 0) > 0)
+        assertTrue((engine.inventory["Minério T1"] ?: 0) > 0)
+        assertEquals(null, engine.inventory["Minério T2"])
         assertTrue((engine.inventory["Madeira T1"] ?: 0) > 0)
         assertEquals(2, engine.progression.snapshot(SkillId.MINING).level)
     }
