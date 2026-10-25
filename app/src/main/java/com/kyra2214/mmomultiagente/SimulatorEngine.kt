@@ -162,6 +162,16 @@ class SimulatorEngine(
         localizedCosts.forEach { (cost, item) -> inventory.removeItem(item, cost.quantity) }
         val itemName = equipmentName(slot, tier)
         inventory.addItem(itemName, 1)
+        val countKey = when (slot) {
+            EquipmentSlot.ARMOR -> "armaduras"
+            EquipmentSlot.HELMET -> "capacetes"
+            EquipmentSlot.GLOVES -> "luvas"
+            EquipmentSlot.BOOTS -> "botas"
+            EquipmentSlot.WEAPON -> "armas"
+            EquipmentSlot.OFF_HAND -> "mao_secundaria"
+            EquipmentSlot.MAGIC_ITEM -> "itens_magicos"
+        }
+        skillCraftCounts[countKey] = (skillCraftCounts[countKey] ?: 0) + 1
         val result = progression.recordSuccessfulAction(recipe.skill, tier)
         val oldTier = equippedGear[slot]
         if (oldTier == null || tier.rank > oldTier.rank) {
