@@ -87,8 +87,8 @@ class SimulatorEngine(
                 return message
             }
             if (result.outcome == DungeonOutcome.WITHDRAWN) {
-                health = result.playerHpRemaining.coerceAtLeast(1)
-                val message = "Aldren percebe que o combate está difícil, recua para uma área segura e sai da masmorra. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
+                health = 100
+                val message = "Aldren percebe que o combate está difícil, recua para uma área segura, sai da masmorra e descansa antes de voltar. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
                 addLog("Tick $worldTick — $message")
                 return message
             }
