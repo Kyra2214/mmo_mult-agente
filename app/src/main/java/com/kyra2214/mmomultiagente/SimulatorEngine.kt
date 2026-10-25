@@ -13,6 +13,9 @@ class SimulatorEngine(
     skillCraftCounts: Map<String, Int> = emptyMap(),
     progressionSnapshots: Map<SkillId, SkillSnapshot> = emptyMap(),
     equippedGear: Map<EquipmentSlot, Tier> = emptyMap(),
+    var dungeonCompleted: Boolean = false,
+    var dungeonAttempts: Int = 0,
+    var health: Int = 100,
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
@@ -61,6 +64,25 @@ class SimulatorEngine(
     fun tick(): String {
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
+        if (isReadyForT3Dungeon() && !dungeonCompleted && (dungeonAttempts == 0 || worldTick % 50L == 0L)) {
+            val result = T3DungeonSimulator.runRandom(equippedGear, health.coerceAtLeast(1))
+            dungeonAttempts += 1
+            health = result.playerHpRemaining
+            if (result.outcome == DungeonOutcome.VICTORY) {
+                dungeonCompleted = true
+                result.chest?.lootItemIds?.forEach { inventory.addItem(it, 1) }
+                val message = "Aldren vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
+                addLog("Tick $worldTick — $message")
+                return message
+            }
+            val lostItem = inventory.keys.firstOrNull { it.startsWith("Minério ") || it.startsWith("Madeira ") || it.startsWith("Fibra ") }
+            if (lostItem != null) inventory.removeItem(lostItem, 1)
+            silver = (silver - 20).coerceAtLeast(0)
+            health = 100
+            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Perde 20 alzes (se disponíveis) e 1 recurso carregado, recupera-se na cidade e poderá tentar novamente depois."
+            addLog("Tick $worldTick — $message")
+            return message
+        }
         val message = when (AutonomousDecisionPolicy.choose(inventory.toMap(), silver, marketListing, progression)) {
             AutonomousAction.GATHER -> gatherNeededMaterials()
             AutonomousAction.HUNT -> huntForHide()
@@ -73,6 +95,9 @@ class SimulatorEngine(
         addLog("Tick $worldTick — $message")
         return message
     }
+
+    private fun isReadyForT3Dungeon(): Boolean =
+        EquipmentSlot.entries.all { slot -> (equippedGear[slot]?.rank ?: 0) >= Tier.T3.rank }
 
     private fun gatherNeededMaterials(): String {
         data class GatherNeed(val raw: String, val processed: String, val skill: SkillId, val label: String, val batchSize: Int = 1)
@@ -333,6 +358,9 @@ class SimulatorEngine(
         skillCraftCounts.clear()
         progression = SkillProgression()
         equippedGear.clear()
+        dungeonCompleted = false
+        dungeonAttempts = 0
+        health = 100
         log.clear()
         log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
@@ -353,6 +381,9 @@ class SimulatorEngine(
                 "${skill.name},${state.level},${state.actionsAtCurrentLevel},${state.totalSuccessfulActions}"
             })
             .putString("equipped_gear", equippedGear.entries.joinToString(";") { (slot, tier) -> "${slot.name},${tier.name}" })
+            .putBoolean("dungeon_completed", dungeonCompleted)
+            .putInt("dungeon_attempts", dungeonAttempts)
+            .putInt("health", health)
             .putString("log", log.joinToString("\u001e"))
             .apply()
     }
@@ -375,6 +406,9 @@ class SimulatorEngine(
                 worldTick = preferences.getLong("world_tick", 0L),
                 autonomousActionIndex = preferences.getInt("autonomous_action_index", 0),
                 skillCraftCounts = preferences.getString("skill_craft_counts", "").orEmpty().decodeInventory(),
+                dungeonCompleted = preferences.getBoolean("dungeon_completed", false),
+                dungeonAttempts = preferences.getInt("dungeon_attempts", 0),
+                health = preferences.getInt("health", 100),
                 equippedGear = preferences.getString("equipped_gear", "").orEmpty().split(";").mapNotNull { entry ->
                     val parts = entry.split(",")
                     if (parts.size != 2) null else {
