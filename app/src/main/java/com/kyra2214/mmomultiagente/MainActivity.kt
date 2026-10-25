@@ -121,7 +121,7 @@ class MainActivity : Activity() {
         }
         val listing = engine.marketListing?.let { "Oferta: " + it + " por " + (engine.marketPrice ?: 0) + " alzes (reservada; aguardando comprador)" } ?: "Sem ofertas publicadas"
         stats.text = "Agente: Aldren   •   Dia: " + (1 + engine.worldTick / 720) + "   •   Tick: " + engine.worldTick + "\nHP: " + engine.health + "   •   Masmorra T3: " + (if (engine.dungeonCompleted) "concluída" else "tentativas " + engine.dungeonAttempts) + "\nAlzes: " + engine.silver +
-            "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/11" +
+            "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/12" +
             "\nEquipamento: " + gearText + "\nEspecializações: " + progressionText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
         objective.text = engine.currentObjective
         logView.text = engine.log.mapIndexed { index, line -> (index + 1).toString() + ". " + line }
