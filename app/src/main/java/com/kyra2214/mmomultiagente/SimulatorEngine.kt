@@ -116,7 +116,12 @@ class SimulatorEngine(
             val rawName = "${need.raw} ${tier.name}"
             val processedName = "${need.processed} ${tier.name}"
             val hasRaw = (inventory[rawName] ?: 0) > 0
-            val hasProcessed = (inventory[processedName] ?: 0) >= if (need.raw == "Minério") 2 else 1
+            val requiredProcessed = when (need.raw) {
+                "Minério" -> 3
+                "Madeira", "Fibra", "Fragmento Arcano" -> 2
+                else -> 1
+            }
+            val hasProcessed = (inventory[processedName] ?: 0) >= requiredProcessed
             if (!hasRaw && !hasProcessed) {
                 inventory.addItem(rawName, need.batchSize)
                 progression.recordSuccessfulAction(need.skill, tier)
