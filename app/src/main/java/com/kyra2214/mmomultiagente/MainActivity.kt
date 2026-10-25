@@ -3,6 +3,8 @@ package com.kyra2214.mmomultiagente
 import android.app.Activity
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
@@ -16,12 +18,15 @@ class MainActivity : Activity() {
     private lateinit var objective: TextView
     private lateinit var logView: TextView
     private lateinit var scrollView: ScrollView
-    private lateinit var nextButton: Button
+    private val handler = Handler(Looper.getMainLooper())
+    private val tickIntervalMs = 2_000L
+    private val runner = object : Runnable { override fun run() { engine.tick(); persistAndRefresh(); preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply(); handler.postDelayed(this, tickIntervalMs) } }
     private val preferences by lazy { getSharedPreferences("mmo_simulator", MODE_PRIVATE) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         engine = SimulatorEngine.loadFrom(preferences)
+        catchUpWhileClosed()
         buildInterface()
         refresh()
     }
@@ -75,18 +80,11 @@ class MainActivity : Activity() {
         }
         scrollView.addView(logView)
         root.addView(scrollView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        nextButton = makeButton("Executar próximo passo") {
-            engine.step()
-            persistAndRefresh()
-        }
-        root.addView(nextButton, matchWidth())
-        root.addView(makeButton("Avançar 10 passos") {
-            repeat(10) { if (!engine.isComplete) engine.step() }
-            persistAndRefresh()
-        }, matchWidth())
-        root.addView(makeButton("Reiniciar simulação", secondary = true) {
-            engine.reset()
-            persistAndRefresh()
+        root.addView(TextView(this).apply {
+            text = "SIMULAÇÃO AUTÔNOMA • 1 tick a cada 2 segundos em primeiro plano"
+            textSize = 12f
+            setTextColor(Color.rgb(36, 107, 85))
+            setPadding(0, dp(10), 0, dp(4))
         }, matchWidth())
         root.addView(TextView(this).apply {
             text = "O progresso é salvo automaticamente neste aparelho."
@@ -114,15 +112,23 @@ class MainActivity : Activity() {
             else engine.inventory.entries.joinToString { it.value.toString() + "× " + it.key }
         val chestText = if (engine.chest.isEmpty()) "vazio"
             else engine.chest.entries.joinToString { it.value.toString() + "× " + it.key }
-        val listing = engine.marketListing?.let { "Oferta: " + it + " (aguardando comprador)" } ?: "Sem ofertas publicadas"
-        stats.text = "Agente: Aldren   •   Dia: 1\nAlzes: " + engine.silver +
-            "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/11" +
-            "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
+        val gearText = if (engine.equippedGear.isEmpty()) "nenhum" else engine.equippedGear.entries.joinToString { (slot, tier) ->
+            val wear = engine.gearDamage[slot] ?: 0
+            slot.name + ": " + tier.name + if (wear > 0) " (desgaste $wear/3)" else " (íntegro)"
+        }
+        val progressionText = EquipmentSlot.entries.joinToString { slot ->
+            val skill = TierRecipes.recipe(slot, Tier.T1).skill
+            val snapshot = engine.progression.snapshot(skill)
+            val progress = if (snapshot.level >= SkillProgression.MAX_LEVEL) "máx." else "${snapshot.actionsAtCurrentLevel}/${SkillProgression.actionsRequiredForNextLevel(snapshot.level)}"
+            "${slot.name}: N${snapshot.level} ($progress)"
+        }
+        val listing = engine.marketListing?.let { "Oferta: " + it + " por " + (engine.marketPrice ?: 0) + " alzes (reservada; aguardando comprador)" } ?: "Sem ofertas publicadas"
+        stats.text = "Agente: Aldren   •   Dia: " + (1 + engine.worldTick / 720) + "   •   Tick: " + engine.worldTick + "\nHP: " + engine.health + "   •   Masmorra T3: " + (if (engine.dungeonCompleted) "concluída" else "tentativas " + engine.dungeonAttempts) + "\nAlzes: " + engine.silver +
+            "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/12" +
+            "\nEquipamento: " + gearText + "\nEspecializações: " + progressionText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
         objective.text = engine.currentObjective
         logView.text = engine.log.mapIndexed { index, line -> (index + 1).toString() + ". " + line }
             .joinToString("\n\n")
-        nextButton.isEnabled = !engine.isComplete
-        nextButton.text = if (engine.isComplete) "Tutorial concluído" else "Executar próximo passo"
         scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
     }
 
@@ -131,9 +137,30 @@ class MainActivity : Activity() {
         refresh()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::engine.isInitialized) {
+            handler.removeCallbacks(runner)
+            handler.postDelayed(runner, tickIntervalMs)
+        }
+    }
+
     override fun onPause() {
-        if (::engine.isInitialized) engine.saveTo(preferences)
+        handler.removeCallbacks(runner)
+        if (::engine.isInitialized) {
+            engine.saveTo(preferences)
+            preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
+        }
         super.onPause()
+    }
+
+    private fun catchUpWhileClosed() {
+        val now = System.currentTimeMillis()
+        val last = preferences.getLong("last_wall_clock_ms", now)
+        val elapsedTicks = ((now - last).coerceAtLeast(0L) / tickIntervalMs).coerceAtMost(3600L)
+        repeat(elapsedTicks.toInt()) { engine.tick() }
+        preferences.edit().putLong("last_wall_clock_ms", now).apply()
+        if (elapsedTicks > 0) engine.saveTo(preferences)
     }
 
     private fun matchWidth() = LinearLayout.LayoutParams(
