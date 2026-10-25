@@ -92,7 +92,10 @@ class SimulatorEngine(
             health = result.playerHpRemaining
             if (result.outcome == DungeonOutcome.VICTORY) {
                 dungeonCompleted = true
-                result.chest?.lootItemIds?.forEach { inventory.addItem(it, 1) }
+                result.chest?.lootItemIds?.forEach {
+                    inventory.addItem(it, 1)
+                    recordEconomy(EconomyEventType.RESOURCE_CREATED, it, 1, "dungeon-loot")
+                }
                 val message = "${agentName} vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
                 addLog("Tick $worldTick — $message")
                 return message
@@ -322,8 +325,13 @@ class SimulatorEngine(
         val result = progression.recordSuccessfulAction(recipe.skill, tier)
         val oldTier = equippedGear[slot]
         if (oldTier == null || tier.rank > oldTier.rank) {
-            if (oldTier != null) inventory.addItem(equipmentName(slot, oldTier), 1)
+            if (oldTier != null) {
+                val oldItem = equipmentName(slot, oldTier)
+                inventory.addItem(oldItem, 1)
+                recordEconomy(EconomyEventType.ITEM_TRANSFERRED, oldItem, 1, "equipment-to-inventory:${slot.name}")
+            }
             inventory.removeItem(itemName, 1)
+            recordEconomy(EconomyEventType.ITEM_TRANSFERRED, itemName, 1, "inventory-to-equipment:${slot.name}")
             equippedGear[slot] = tier
             // New equipment starts intact; wear belongs to the replaced piece.
             gearDamage.remove(slot)
@@ -454,6 +462,7 @@ class SimulatorEngine(
             15 -> {
                 if (inventory.removeItem("Fibra T1", 1)) {
                     chest.addItem("Fibra T1", 1)
+                    recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Fibra T1", 1, "inventory-to-chest")
                     "${agentName} guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
                 } else {
                     "O baú foi apresentado. Não havia Fibra T1 sobrando; nenhuma quantidade foi criada."
