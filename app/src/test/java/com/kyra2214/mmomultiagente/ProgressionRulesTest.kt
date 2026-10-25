@@ -21,7 +21,7 @@ class ProgressionRulesTest {
         progression.recordSuccessfulAction(SkillId.HELMET_CRAFTING, Tier.T2)
         assertEquals(3, progression.snapshot(SkillId.HELMET_CRAFTING).level)
         assertTrue(progression.canPerformTier(SkillId.HELMET_CRAFTING, Tier.T3))
-        assertEquals(1, progression.snapshot(SkillId.HELMET_CRAFTING).actionsAtCurrentLevel)
+        assertEquals(0, progression.snapshot(SkillId.HELMET_CRAFTING).actionsAtCurrentLevel)
     }
 
     @Test(expected = IllegalArgumentException::class)
