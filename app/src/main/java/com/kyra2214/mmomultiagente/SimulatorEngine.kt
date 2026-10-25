@@ -61,7 +61,7 @@ class SimulatorEngine(
     fun tick(): String {
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
-        val message = when (AutonomousDecisionPolicy.choose(inventory.toMap(), silver, marketListing)) {
+        val message = when (AutonomousDecisionPolicy.choose(inventory.toMap(), silver, marketListing, progression)) {
             AutonomousAction.GATHER -> gatherNeededMaterials()
             AutonomousAction.HUNT -> huntForHide()
             AutonomousAction.FISH -> fishIfUseful()
@@ -75,37 +75,38 @@ class SimulatorEngine(
     }
 
     private fun gatherNeededMaterials(): String {
-        // Only gather materials the agent can currently use; avoid unbounded stockpiles.
-        val needsOre = (inventory["Minério T1"] ?: 0) < 2 && (inventory["Barra T1"] ?: 0) < 2
-        val needsWood = (inventory["Madeira T1"] ?: 0) < 1 && (inventory["Prancha T1"] ?: 0) < 1
-        val needsFiber = (inventory["Fibra T1"] ?: 0) < 1 && ((inventory["Tecido T1"] ?: 0) < 1 || (inventory["Vara de Pesca T1"] ?: 0) <= 0)
-        if (needsOre) {
-            inventory.addItem("Minério T1", 2)
-            progression.recordSuccessfulAction(SkillId.MINING, Tier.T1)
+        data class GatherNeed(val raw: String, val processed: String, val skill: SkillId, val label: String)
+        val needs = listOf(
+            GatherNeed("Minério", "Barra", SkillId.MINING, "minério"),
+            GatherNeed("Madeira", "Prancha", SkillId.WOODCUTTING, "madeira"),
+            GatherNeed("Fibra", "Tecido", SkillId.FIBER_GATHERING, "fibra")
+        )
+        val gathered = mutableListOf<String>()
+        needs.forEach { need ->
+            val tier = SkillProgression.highestUnlockedTier(progression.snapshot(need.skill).level)
+            val rawName = "${need.raw} ${tier.name}"
+            val processedName = "${need.processed} ${tier.name}"
+            val hasRaw = (inventory[rawName] ?: 0) > 0
+            val hasProcessed = (inventory[processedName] ?: 0) >= if (need.raw == "Minério") 2 else 1
+            if (!hasRaw && !hasProcessed) {
+                inventory.addItem(rawName, if (need.raw == "Minério") 2 else 1)
+                progression.recordSuccessfulAction(need.skill, tier)
+                gathered.add("${if (need.raw == "Minério") 2 else 1} $rawName")
+            }
         }
-        if (needsWood) {
-            inventory.addItem("Madeira T1", 1)
-            progression.recordSuccessfulAction(SkillId.WOODCUTTING, Tier.T1)
+        return if (gathered.isNotEmpty()) {
+            "Aldren consulta os estoques e coleta recursos compatíveis com suas especializações: ${gathered.joinToString(", ")}."
+        } else {
+            "Aldren verifica as fontes disponíveis; não coleta porque já tem matéria-prima ou material processado para as necessidades imediatas."
         }
-        if (needsFiber) {
-            inventory.addItem("Fibra T1", 1)
-            progression.recordSuccessfulAction(SkillId.FIBER_GATHERING, Tier.T1)
-        }
-        return if (needsOre || needsWood || needsFiber) {
-            "Aldren consulta os estoques e coleta apenas o que falta para receitas conhecidas: " +
-                listOfNotNull(
-                    if (needsOre) "2 Minérios T1" else null,
-                    if (needsWood) "1 Madeira T1" else null,
-                    if (needsFiber) "1 Fibra T1" else null
-                ).joinToString(", ") + "."
-        } else "Aldren verifica as fontes próximas, mas não coleta: os materiais básicos já cobrem suas necessidades imediatas."
     }
 
     private fun huntForHide(): String {
-        inventory.addItem("Couro T1", 1)
-        progression.recordSuccessfulAction(SkillId.SKINNING, Tier.T1)
+        val tier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
+        inventory.addItem("Couro ${tier.name}", 1)
+        progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
-        return "Aldren caça uma criatura T1 compatível com seu preparo; obtém 1 Couro T1 e 5 alzes."
+        return "Aldren caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
     }
 
     private fun fishIfUseful(): String {
@@ -127,19 +128,22 @@ class SimulatorEngine(
     }
 
     private fun refineOneMaterial(): String {
-        data class RefiningRecipe(val raw: String, val output: String, val label: String, val skill: SkillId)
-        val recipes = listOf(
-            RefiningRecipe("Minério T1", "Barra T1", "refino de minério", SkillId.ORE_REFINING),
-            RefiningRecipe("Madeira T1", "Prancha T1", "refino de madeira", SkillId.WOOD_REFINING),
-            RefiningRecipe("Couro T1", "Couro Curtido T1", "curtume", SkillId.LEATHER_REFINING),
-            RefiningRecipe("Fibra T1", "Tecido T1", "refino de fibras", SkillId.FIBER_REFINING)
-        )
-        val recipe = recipes.firstOrNull { (inventory[it.raw] ?: 0) > 0 }
-            ?: return "Aldren consulta os refinadores, mas não refina: faltam matérias-primas. Nenhum item foi criado."
+        data class RefiningRecipe(val raw: String, val output: String, val label: String, val skill: SkillId, val tier: Tier)
+        val recipes = Tier.entries.reversed().flatMap { tier ->
+            listOf(
+                RefiningRecipe("Minério ${tier.name}", "Barra ${tier.name}", "refino de minério", SkillId.ORE_REFINING, tier),
+                RefiningRecipe("Madeira ${tier.name}", "Prancha ${tier.name}", "refino de madeira", SkillId.WOOD_REFINING, tier),
+                RefiningRecipe("Couro ${tier.name}", "Couro Curtido ${tier.name}", "curtume", SkillId.LEATHER_REFINING, tier),
+                RefiningRecipe("Fibra ${tier.name}", "Tecido ${tier.name}", "refino de fibras", SkillId.FIBER_REFINING, tier)
+            )
+        }
+        val recipe = recipes.firstOrNull { r ->
+            progression.canPerformTier(r.skill, r.tier) && (inventory[r.raw] ?: 0) > 0
+        } ?: return "Aldren consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
         inventory.removeItem(recipe.raw, 1)
         inventory.addItem(recipe.output, 1)
-        progression.recordSuccessfulAction(recipe.skill, Tier.T1)
-        return "Aldren realiza ${recipe.label}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
+        progression.recordSuccessfulAction(recipe.skill, recipe.tier)
+        return "Aldren realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
 
     /**
