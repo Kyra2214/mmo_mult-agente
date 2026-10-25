@@ -7,10 +7,14 @@ object AutonomousDecisionPolicy {
     fun choose(inventory: Map<String, Int>, silver: Int, marketListing: String?): AutonomousAction {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
-        // Complete a viable recipe before gathering more stock.
-        if (has("Barra T1", 2) && has("Couro Curtido T1", 2) && has("Tecido T1")) {
-            return AutonomousAction.CRAFT
+        // Complete any unlocked T1 equipment recipe before gathering more stock.
+        val affordableEquipment = TierRecipes.fullSet(Tier.T1).any { recipe ->
+            recipe.materials.all { cost ->
+                val item = materialDisplayName(cost.itemId)
+                has(item, cost.quantity)
+            }
         }
+        if (affordableEquipment) return AutonomousAction.CRAFT
         if (has("Prancha T1") && has("Fibra T1") && !has("Vara de Pesca T1")) {
             return AutonomousAction.CRAFT
         }
@@ -38,4 +42,19 @@ object AutonomousDecisionPolicy {
         if (silver < 30) return AutonomousAction.HUNT
         return AutonomousAction.TRADE
     }
+}
+
+
+private fun materialDisplayName(itemId: String): String {
+    val parts = itemId.split("_T")
+    val tier = parts.getOrNull(1) ?: "1"
+    val name = when (parts.firstOrNull()) {
+        "METAL_BAR" -> "Barra"
+        "TANNED_LEATHER" -> "Couro Curtido"
+        "CLOTH" -> "Tecido"
+        "PLANK" -> "Prancha"
+        "ARCANE_COMPONENT" -> "Componente Arcano"
+        else -> itemId
+    }
+    return "$name T$tier"
 }
