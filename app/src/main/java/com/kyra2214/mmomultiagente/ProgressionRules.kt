@@ -55,8 +55,11 @@ class SkillProgression(
     fun recordSuccessfulAction(skill: SkillId, actionTier: Tier): ProgressionResult {
         val before = skills.getValue(skill)
         val neededTier = Tier.fromRank(before.level.coerceIn(1, 4))
-        require(actionTier.rank >= neededTier.rank) {
-            "Ação ${actionTier.name} insuficiente para evoluir ${skill.name} no nível ${before.level}"
+        if (actionTier.rank < neededTier.rank || before.level >= MAX_LEVEL) {
+            // The action may still be performed, but an insufficient tier cannot
+            // advance this specialization's current level.
+            skills[skill] = before.copy(totalSuccessfulActions = before.totalSuccessfulActions + 1)
+            return ProgressionResult(before.level, before.level, before.actionsAtCurrentLevel, highestUnlockedTier(before.level))
         }
         val neededActions = actionsRequiredForNextLevel(before.level)
         val count = before.actionsAtCurrentLevel + 1
