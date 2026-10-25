@@ -167,6 +167,7 @@ class SimulatorEngine(
         val cost = 10 * tier.rank * damage
         if (silver < cost) return null
         silver -= cost
+        recordEconomy(EconomyEventType.CURRENCY_BURNED, "alzes", cost, "equipment-repair")
         gearDamage[slot] = 0
         return "${agentName} visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
     }
@@ -366,7 +367,10 @@ class SimulatorEngine(
         }
         inventory.removeItem("Prancha T1", 1)
         inventory.removeItem("Tecido T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Prancha T1", 1, "tool-crafting")
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Tecido T1", 1, "tool-crafting")
         inventory.addItem("Vara de Pesca T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Vara de Pesca T1", 1, "tool-crafting")
         skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
         return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
@@ -399,7 +403,10 @@ class SimulatorEngine(
             (inventory["Vara de Pesca T1"] ?: 0) <= 0) {
             inventory.removeItem("Prancha T1", 1)
             inventory.removeItem("Fibra T1", 1)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Prancha T1", 1, "tool-crafting")
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Fibra T1", 1, "tool-crafting")
             inventory.addItem("Vara de Pesca T1", 1)
+            recordEconomy(EconomyEventType.RESOURCE_CREATED, "Vara de Pesca T1", 1, "tool-crafting")
             skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
             progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
             return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
@@ -468,6 +475,7 @@ class SimulatorEngine(
                     "Decisão de transporte: ir a pé. O teleporte custa " + cost + " alzes e deixaria pouca reserva. Caminhar leva cerca de 25 minutos simulados; teleporte levaria 1."
                 } else {
                     silver -= cost
+                    recordEconomy(EconomyEventType.CURRENCY_BURNED, "alzes", cost, "teleport")
                     "Decisão de transporte: teleportar por " + cost + " alzes. O custo foi descontado do saldo."
                 }
             }
