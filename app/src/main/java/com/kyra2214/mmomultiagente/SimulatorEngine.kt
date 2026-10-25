@@ -474,6 +474,7 @@ class SimulatorEngine(
         skillCraftCounts.clear()
         progression = SkillProgression()
         equippedGear.clear()
+        gearDamage.clear()
         dungeonCompleted = false
         dungeonAttempts = 0
         health = 100
@@ -502,6 +503,7 @@ class SimulatorEngine(
             .putBoolean("dungeon_completed", dungeonCompleted)
             .putInt("dungeon_attempts", dungeonAttempts)
             .putInt("health", health)
+            .putString("gear_damage", gearDamage.entries.joinToString(";") { (slot, damage) -> "${slot.name},$damage" })
             .putString("log", log.joinToString("\u001e"))
             .apply()
     }
@@ -529,6 +531,12 @@ class SimulatorEngine(
                 dungeonCompleted = preferences.getBoolean("dungeon_completed", false),
                 dungeonAttempts = preferences.getInt("dungeon_attempts", 0),
                 health = preferences.getInt("health", 100),
+                gearDamage = preferences.getString("gear_damage", "").orEmpty().split(";").mapNotNull { entry ->
+                    val parts = entry.split(",")
+                    val slot = parts.getOrNull(0)?.let { runCatching { EquipmentSlot.valueOf(it) }.getOrNull() }
+                    val damage = parts.getOrNull(1)?.toIntOrNull()
+                    if (slot == null || damage == null || damage <= 0) null else slot to damage
+                }.toMap(),
                 equippedGear = preferences.getString("equipped_gear", "").orEmpty().split(";").mapNotNull { entry ->
                     val parts = entry.split(",")
                     if (parts.size != 2) null else {
