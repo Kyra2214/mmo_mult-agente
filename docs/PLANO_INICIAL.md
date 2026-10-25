@@ -30,6 +30,12 @@ Funcionalidades presentes no protótipo:
 6. Registrar eventos e razões relevantes para explicar as decisões dos agentes, sem transformar logs em conhecimento automático para todos.
 7. Corrigir falhas e atualizar o plano antes de avançar para a próxima escala.
 
+## Trabalho em andamento — execução autônoma inicial
+
+Foi iniciado o primeiro corte de execução autônoma na branch `feature/autonomous-t3-survival`: a interface deixa de oferecer botões para decidir ações do personagem; os ticks são automáticos, o tutorial inicial avança sozinho, atividades básicas continuam após o tutorial e o estado de ticks/contagens de fabricação é persistido. Ao reabrir, há recuperação limitada do tempo decorrido para evitar uma pausa total do mundo.
+
+**Limite desta entrega:** ainda não representa o objetivo final T1–T4. O loop atual de coleta/caça/pesca/refino/fabricação é deliberadamente simples; faltam progressão completa por especialização e tier, economia transacional, conjunto T3/T4, combate de masmorra, loot D4 e testes de longa duração. Não marcar como concluído até implementar e validar esses sistemas.
+
 ## Fase 0 — Fundação do simulador textual
 
 ### Objetivos
