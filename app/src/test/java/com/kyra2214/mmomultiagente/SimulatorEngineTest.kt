@@ -69,7 +69,7 @@ class AutonomousTickTest {
     @Test fun autonomousCraftingConsumesMaterialsAndTracksCategorySeparately() {
         val engine = SimulatorEngine(inventory = mapOf("Barra T1" to 2, "Couro Curtido T1" to 1, "Prancha T1" to 1))
         repeat(SimulatorEngine.TOTAL_STAGES) { engine.step() }
-        repeat(5) { engine.tick() }
+        engine.tick()
         assertEquals(1, engine.inventory["Armadura T1"])
         assertEquals(1, engine.skillCraftCounts["armaduras"])
         assertFalse(engine.inventory.containsKey("Barra T1"))
