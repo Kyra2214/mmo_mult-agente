@@ -82,11 +82,14 @@ class SimulatorEngine(
                 addLog("Tick $worldTick — $message")
                 return message
             }
-            val lostItem = inventory.keys.firstOrNull { it.startsWith("Minério ") || it.startsWith("Madeira ") || it.startsWith("Fibra ") }
-            if (lostItem != null) inventory.removeItem(lostItem, 1)
-            silver = (silver - 20).coerceAtLeast(0)
+            if (result.outcome == DungeonOutcome.WITHDRAWN) {
+                health = result.playerHpRemaining.coerceAtLeast(1)
+                val message = "Aldren percebe que o combate está difícil, recua para uma área segura e sai da masmorra. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
+                addLog("Tick $worldTick — $message")
+                return message
+            }
             health = 100
-            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Perde 20 alzes (se disponíveis) e 1 recurso carregado, recupera-se na cidade e poderá tentar novamente depois."
+            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte; recupera-se na cidade e poderá tentar novamente depois."
             addLog("Tick $worldTick — $message")
             return message
         }
