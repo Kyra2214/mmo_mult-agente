@@ -162,7 +162,7 @@ class MainActivity : Activity() {
         addSectionTitle("EVENTOS DO SERVIDOR")
         addPlainText("Eventos recentes de todos os agentes, agrupados numa única linha do tempo. Os logs continuam pertencendo ao agente que executou a ação.")
         val trades = economyLedger.events.count { it.type == EconomyEventType.TRADE_SETTLED } / 2
-        addInfoCard("MERCADO RASTREÁVEL (SESSÃO)\nTransações concluídas: $trades\nRegistros de compra/venda: ${economyLedger.events.size}\nEscopo atual: liquidações do mercado compartilhado; coleta e recompensas ainda não estão totalmente rastreadas.")
+        addInfoCard("MERCADO RASTREÁVEL (SESSÃO)\nTransações concluídas: $trades\nEventos causais registrados: ${economyLedger.events.size}\nEscopo atual: liquidações do mercado compartilhado; coleta e recompensas ainda não estão totalmente rastreadas.")
         recentEvents(100).forEach { (name, event) -> addInfoCard("$name\n$event") }
         if (recentEvents(100).isEmpty()) addPlainText("Ainda não há eventos registrados.")
     }
