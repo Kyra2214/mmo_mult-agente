@@ -257,6 +257,7 @@ class SimulatorEngine(
 
     private fun listOrReviewMarket(): String {
         if (marketListing == null && inventory.removeItem("Peixe T1", 1)) {
+            recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Peixe T1", 1, "inventory-to-market-escrow")
             marketListing = "Peixe T1"
             marketPrice = 5
             marketListingAgeTicks = 0
@@ -470,6 +471,7 @@ class SimulatorEngine(
             }
             16 -> {
                 if (inventory.removeItem("Armadura T1", 1)) {
+                    recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Armadura T1", 1, "inventory-to-market-escrow")
                     marketListing = "Armadura T1"
                     marketPrice = 25
                     marketListingAgeTicks = 0
