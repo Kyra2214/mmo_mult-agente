@@ -52,3 +52,26 @@ class SimulatorEngineTest {
         assertNull(SimulatorEngine().marketListing)
     }
 }
+
+
+class AutonomousTickTest {
+    @Test fun tickAutomaticallyRunsTutorialAndThenContinuesWorld() {
+        val engine = SimulatorEngine()
+        repeat(SimulatorEngine.TOTAL_STAGES) { engine.tick() }
+        assertTrue(engine.isComplete)
+        assertEquals(0L, engine.worldTick)
+        repeat(6) { engine.tick() }
+        assertEquals(6L, engine.worldTick)
+        assertTrue(engine.log.any { it.contains("pescar") })
+        assertTrue(engine.log.any { it.contains("refina") || it.contains("refino") || it.contains("curtume") })
+    }
+
+    @Test fun autonomousCraftingConsumesMaterialsAndTracksCategorySeparately() {
+        val engine = SimulatorEngine(inventory = mapOf("Barra T1" to 2, "Couro Curtido T1" to 1, "Prancha T1" to 1))
+        repeat(SimulatorEngine.TOTAL_STAGES) { engine.step() }
+        repeat(5) { engine.tick() }
+        assertEquals(1, engine.inventory["Armadura T1"])
+        assertEquals(1, engine.skillCraftCounts["armaduras"])
+        assertFalse(engine.inventory.containsKey("Barra T1"))
+    }
+}
