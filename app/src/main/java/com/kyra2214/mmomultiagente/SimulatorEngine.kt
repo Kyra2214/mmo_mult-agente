@@ -8,6 +8,8 @@ class SimulatorEngine(
     chest: Map<String, Int> = emptyMap(),
     learnedNpcIds: Set<Int> = emptySet(),
     var marketListing: String? = null,
+    var marketPrice: Int? = null,
+    var marketListingAgeTicks: Int = 0,
     var worldTick: Long = 0L,
     var autonomousActionIndex: Int = 0,
     skillCraftCounts: Map<String, Int> = emptyMap(),
@@ -64,6 +66,11 @@ class SimulatorEngine(
     fun tick(): String {
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
+        if (marketListing != null) marketListingAgeTicks += 1
+        resolveMarketBuyer()?.let { message ->
+            addLog("Tick $worldTick — $message")
+            return message
+        }
         if (isReadyForT3Dungeon() && !dungeonCompleted && (dungeonAttempts == 0 || worldTick % 50L == 0L)) {
             val result = T3DungeonSimulator.runRandom(equippedGear, health.coerceAtLeast(1))
             dungeonAttempts += 1
@@ -95,6 +102,23 @@ class SimulatorEngine(
         autonomousActionIndex += 1
         addLog("Tick $worldTick — $message")
         return message
+    }
+
+    private fun resolveMarketBuyer(): String? {
+        val item = marketListing ?: return null
+        // A buyer visits the market every five world ticks. Offers remain reserved
+        // until that visit; listing alone never grants silver.
+        if (marketListingAgeTicks < 5 || worldTick % 5L != 0L) return null
+        val price = marketPrice ?: when {
+            item == "Armadura T1" -> 25
+            item.startsWith("Peixe ") -> 5
+            else -> 10
+        }
+        silver += price
+        marketListing = null
+        marketPrice = null
+        marketListingAgeTicks = 0
+        return "Comprador confirma a compra de $item por $price alzes. A oferta foi liquidada e o saldo foi creditado."
     }
 
     private fun isReadyForT3Dungeon(): Boolean =
@@ -168,7 +192,9 @@ class SimulatorEngine(
     private fun listOrReviewMarket(): String {
         if (marketListing == null && inventory.removeItem("Peixe T1", 1)) {
             marketListing = "Peixe T1"
-            return "Aldren publica uma oferta de 1 Peixe T1. O peixe fica reservado; nenhum alze é recebido antes da venda."
+            marketPrice = 5
+            marketListingAgeTicks = 0
+            return "Aldren publica uma oferta de 1 Peixe T1 por 5 alzes. O peixe fica reservado; nenhum alze é recebido antes da venda."
         }
         return "Aldren revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
     }
@@ -350,6 +376,8 @@ class SimulatorEngine(
             15 -> {
                 if (inventory.removeItem("Armadura T1", 1)) {
                     marketListing = "Armadura T1"
+                    marketPrice = 25
+                    marketListingAgeTicks = 0
                     "Oferta publicada: Armadura T1 por 25 alzes. O item está reservado na oferta e continua pertencendo a Aldren. Ainda não foi vendido; nenhum dinheiro foi recebido."
                 } else {
                     "Oferta não publicada: Aldren não possui Armadura T1 no inventário."
@@ -400,6 +428,8 @@ class SimulatorEngine(
         chest.clear()
         learnedNpcIds.clear()
         marketListing = null
+        marketPrice = null
+        marketListingAgeTicks = 0
         worldTick = 0L
         autonomousActionIndex = 0
         skillCraftCounts.clear()
@@ -421,6 +451,8 @@ class SimulatorEngine(
             .putString("chest", chest.encode())
             .putString("learned_npcs", learnedNpcIds.sorted().joinToString(","))
             .putString("market_listing", marketListing)
+            .putInt("market_price", marketPrice ?: -1)
+            .putInt("market_listing_age_ticks", marketListingAgeTicks)
             .putLong("world_tick", worldTick)
             .putInt("autonomous_action_index", autonomousActionIndex)
             .putString("skill_craft_counts", skillCraftCounts.encode())
@@ -450,6 +482,8 @@ class SimulatorEngine(
                 chest = preferences.getString("chest", "").orEmpty().decodeInventory(),
                 learnedNpcIds = learned,
                 marketListing = preferences.getString("market_listing", null),
+                marketPrice = preferences.getInt("market_price", -1).takeIf { it >= 0 },
+                marketListingAgeTicks = preferences.getInt("market_listing_age_ticks", 0),
                 worldTick = preferences.getLong("world_tick", 0L),
                 autonomousActionIndex = preferences.getInt("autonomous_action_index", 0),
                 skillCraftCounts = preferences.getString("skill_craft_counts", "").orEmpty().decodeInventory(),
