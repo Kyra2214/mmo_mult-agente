@@ -314,9 +314,17 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         handler.removeCallbacks(runner)
-        if (::agents.isInitialized) agents.forEach { agent ->
-            agent.engine.saveTo(agent.preferences)
-            agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
+        if (::agents.isInitialized) {
+            agents.forEach { agent ->
+                agent.engine.saveTo(agent.preferences)
+                agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
+            }
+            if (::worldResourceStore.isInitialized) {
+                worldResourcePreferences.edit().putString("stocks", worldResourceStore.encode()).apply()
+            }
+            if (::economyLedger.isInitialized) {
+                economyLedgerPreferences.edit().putString("events", economyLedger.encode()).apply()
+            }
         }
         super.onPause()
     }
