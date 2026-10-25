@@ -135,7 +135,7 @@ class TierAwareActivityTest {
         engine.tick()
         assertTrue((engine.inventory["Minério T2"] ?: 0) > 0)
         assertTrue((engine.inventory["Madeira T1"] ?: 0) > 0)
-        assertEquals(1, engine.progression.snapshot(SkillId.MINING).level)
+        assertEquals(2, engine.progression.snapshot(SkillId.MINING).level)
     }
 
     @Test fun refiningConsumesRawMaterialAndPreservesItsTier() {
