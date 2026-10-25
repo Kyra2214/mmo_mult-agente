@@ -32,7 +32,7 @@ class SimulatorEngine(
     var progression = SkillProgression(progressionSnapshots)
     val equippedGear = equippedGear.toMutableMap()
     val gearDamage = gearDamage.toMutableMap()
-    val log = logEntries.toMutableList()
+    val log = logEntries.toMutableList().apply { indices.forEach { i -> this[i] = this[i].replace("Aldren", agentName) } }
 
     data class Npc(val id: Int, val name: String, val explanation: String)
 
