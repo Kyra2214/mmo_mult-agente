@@ -109,8 +109,10 @@ class SimulatorEngine(
             GatherNeed("Fragmento Arcano", "Componente Arcano", SkillId.ARCANE_GATHERING, "fragmentos arcanos")
         )
         val gathered = mutableListOf<String>()
+        val targetTier = equipmentTargetTier()
         needs.forEach { need ->
-            val tier = SkillProgression.highestUnlockedTier(progression.snapshot(need.skill).level)
+            val skillTier = SkillProgression.highestUnlockedTier(progression.snapshot(need.skill).level)
+            val tier = Tier.fromRank(minOf(targetTier.rank, skillTier.rank))
             val rawName = "${need.raw} ${tier.name}"
             val processedName = "${need.processed} ${tier.name}"
             val hasRaw = (inventory[rawName] ?: 0) > 0
@@ -243,19 +245,23 @@ class SimulatorEngine(
     }
 
     private fun craftOneItem(): String {
-        // Prefer an equipment recipe that is unlocked and fully affordable.
-        for (slot in EquipmentSlot.entries) {
-            val skill = TierRecipes.recipe(slot, Tier.T1).skill
-            val affordableTier = Tier.entries.reversed().firstOrNull { tier ->
-                progression.canPerformTier(skill, tier) &&
-                    TierRecipes.recipe(slot, tier).materials.all { cost ->
-                        (inventory[materialDisplayName(cost.itemId)] ?: 0) >= cost.quantity
-                    }
+        val targetTier = equipmentTargetTier()
+        // Spread tier-specific crafting across the least-developed specialization,
+        // so one slot cannot monopolize materials while the other six lag behind.
+        val orderedSlots = EquipmentSlot.entries.sortedWith(
+            compareBy<EquipmentSlot> { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).level
+            }.thenBy { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).actionsAtCurrentLevel
             }
-            if (affordableTier != null) {
-                val result = craftEquipment(slot, affordableTier)
-                if (result.startsWith("Aldren fabrica")) return result
+        )
+        for (slot in orderedSlots) {
+            val recipe = TierRecipes.recipe(slot, targetTier)
+            if (!progression.canPerformTier(recipe.skill, targetTier)) continue
+            val affordable = recipe.materials.all { cost ->
+                (inventory[materialDisplayName(cost.itemId)] ?: 0) >= cost.quantity
             }
+            if (affordable) return craftEquipment(slot, targetTier)
         }
 
         // Tool recipe is separate from combat equipment and requires its own materials.
@@ -268,8 +274,16 @@ class SimulatorEngine(
             progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
             return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
         }
-        return "Aldren compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais ou a receita ainda não foi liberada."
+        return "Aldren compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais para o tier-alvo ${targetTier.name}."
     }
+
+    private fun equipmentTargetTier(): Tier {
+        val craftingSkills = EquipmentSlot.entries.map { TierRecipes.recipe(it, Tier.T1).skill }
+        return Tier.fromRank(craftingSkills.minOf { skill ->
+            SkillProgression.highestUnlockedTier(progression.snapshot(skill).level).rank
+        })
+    }
+
     fun step(): String {
         if (isComplete) {
             val message = "Tutorial concluído. Aldren agora pode escolher seus próprios objetivos."
