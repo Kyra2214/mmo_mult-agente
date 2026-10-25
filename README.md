@@ -118,7 +118,7 @@ Consulte **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)** para fases, critéri
 
 ## Estado atual
 
-O repositório contém o primeiro protótipo Android executável: interface textual, 11 NPCs, sequência de tutorial, coleta, caça, fabricação T1, baú, oferta persistente em espera, decisão de transporte, salvamento local e testes unitários. Nesta versão, a sequência do tutorial é determinística; ainda não existe um planejador geral autônomo, sistema de compra entre agentes nem economia multiagente completa. O próximo passo é validar a execução de CI e evoluir a lógica com testes.
+A interface Android agora funciona como observador: o tutorial avança sozinho, depois o agente executa ticks autônomos em primeiro plano e a simulação tenta recuperar tempo decorrido quando o app é reaberto (limitado a 3.600 ticks por retomada). O núcleo já inclui atividades iniciais de coleta, caça, pesca, refino e fabricação com consumo de materiais; isso ainda é uma base de protótipo, não a progressão completa até T4. O repositório contém o primeiro protótipo Android executável: interface textual, 11 NPCs, sequência de tutorial, coleta, caça, fabricação T1, baú, oferta persistente em espera, decisão de transporte, salvamento local e testes unitários. Nesta versão, a sequência do tutorial é determinística; ainda não existe um planejador geral autônomo, sistema de compra entre agentes nem economia multiagente completa. O próximo passo é validar a execução de CI e evoluir a lógica com testes.
 
 ## Licenciamento e referências
 
