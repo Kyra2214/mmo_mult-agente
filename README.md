@@ -2,90 +2,114 @@
 
 **Um laboratório de sociedade artificial persistente para MMORPGs.**
 
-O MMO Multiagente é um projeto experimental para simular um mundo de fantasia habitado por agentes autônomos. Cada habitante possui objetivos, recursos, habilidades, memória e informações limitadas sobre o mundo. Os agentes tomam decisões, interagem e produzem consequências econômicas e sociais sem depender da presença constante de jogadores humanos.
+O MMO Multiagente simula um mundo de fantasia habitado por agentes autônomos com objetivos, recursos, habilidades, memória e conhecimento limitado. O mundo deve continuar funcionando mesmo sem humanos conectados.
 
-A proposta não é começar construindo um MMORPG completo. Primeiro vamos construir um **simulador multiagente 2D**, capaz de demonstrar que uma pequena sociedade pode funcionar a partir de regras coerentes. A visualização inicial poderá usar círculos, quadrados, pontos, regiões e rotas; o sistema de decisões deve continuar funcionando mesmo sem renderização.
+## Abordagem inicial: texto primeiro
 
-## Visão
+A primeira versão será um **simulador textual sem mapa gráfico**. Antes de investir em visualização, vamos validar a lógica dos agentes, o mundo, as quests, os NPCs e a economia. A simulação deverá avançar por turnos ou continuamente, funcionar sem renderização e preservar o estado entre sessões.
 
-Queremos observar uma sociedade emergir de regras e decisões, em vez de escrever antecipadamente uma história para cada personagem.
+## Princípios
 
-Um agente pode começar caçando e depois descobrir que coletar, fabricar ou comerciar é mais vantajoso. Pode trabalhar sozinho, cooperar com outros, entrar numa guilda, proteger comerciantes ou assumir riscos em regiões de PvP. Essas escolhas devem resultar de seus objetivos, capacidades, recursos, personalidade, conhecimento e avaliação de riscos.
+- **Autonomia:** nenhum agente tem profissão fixa; pode mudar de atividade conforme objetivos, capacidade e oportunidades.
+- **Persistência:** personagens, inventários, relações, ofertas, transações, quests e acontecimentos sobrevivem entre sessões.
+- **Conhecimento limitado:** cada agente sabe apenas o que observou, aprendeu ou recebeu por meios permitidos.
+- **Economia rastreável:** itens e dinheiro não surgem sem uma regra explícita; transações registram origem e destino.
+- **Mercado assíncrono:** uma oferta pode permanecer à venda sem comprador. Publicar não significa vender.
+- **Progressão por Tier:** conhecer uma receita não significa ter habilidade, ferramenta ou materiais para executá-la.
+- **Quests condicionais:** o tutorial ensina, verifica condições reais e não exige uma venda imediata para avançar.
+- **Separação de sistemas:** inteligência e regras não dependem de mapa gráfico ou de um MMORPG específico.
+- **IA generativa com parcimônia:** algoritmos convencionais cuidam das decisões operacionais; IA generativa pode apoiar diálogos e interações sociais complexas.
+- **Testar antes de escalar:** ampliar a população somente após validar as etapas anteriores.
 
-O mundo deve continuar avançando mesmo quando nenhum humano estiver conectado.
+## Tutorial inicial — Dia 1 na vila
 
-## Princípios do projeto
+O agente começa com uma quest inicial guiada, não com uma avaliação livre da economia. Ele aprende conversando com NPCs e realizando ações.
 
-- **Agentes autônomos:** não atribuir a cada personagem uma profissão fixa. As atividades são escolhas que podem mudar ao longo do tempo.
-- **Mundo persistente:** personagens, inventários, relações, ofertas, transações e acontecimentos devem sobreviver entre ciclos da simulação.
-- **Conhecimento limitado:** um agente só deve saber o que observou, descobriu ou recebeu de outros sistemas de informação disponíveis para ele. Não deve agir com onisciência.
-- **Economia rastreável:** recursos precisam ter origem; itens e dinheiro não devem aparecer sem uma regra explícita. Transações devem registrar origem, destino e valor.
-- **Mercado assíncrono:** uma oferta pode permanecer à venda mesmo sem compradores. Outro agente poderá encontrá-la e comprá-la mais tarde.
-- **Progressão por Tier:** ferramentas, materiais, receitas, equipamentos e desafios possuem requisitos. Ter experiência suficiente não substitui uma ferramenta necessária.
-- **Consequências reais:** decisões de produção, compra, venda, deslocamento, combate e risco alteram o estado do mundo.
-- **Sistemas separados:** a lógica da sociedade não deve depender dos objetos visuais do Godot nem de um MMORPG específico.
-- **IA generativa com parcimônia:** usar regras e algoritmos convencionais para decisões operacionais frequentes. IA generativa poderá apoiar conversas e interações sociais complexas, sem ser chamada a cada movimento.
-- **Testes antes de escalar:** aumentar a população apenas quando o ciclo anterior estiver coerente e verificável.
+### NPCs iniciais
 
-## Primeiro cenário
+1. Criador de armaduras.
+2. Criador de capacetes.
+3. Criador de luvas.
+4. Criador de botas.
+5. Criador de itens de mão secundária.
+6. Criador de itens mágicos.
+7. Criador de armas.
+8. NPC do mercado.
+9. Teleportador.
+10. NPC do baú/armazenamento.
+11. NPC da masmorra.
 
-O protótipo começa numa zona verde de baixo risco, com recursos e monstros de Tier 1. O primeiro agente aprende as operações básicas por meio de tarefas tutoriais:
+Cada NPC explica sua função, serviços, custos e requisitos. Todos os NPCs de fabricação apresentam receitas de **Tier 1, Tier 2 e Tier 3**, incluindo materiais e requisitos. Isso não libera fabricação automaticamente: o motor do mundo verifica progressão, capacidade, ferramentas e materiais.
 
-1. movimentar-se e avaliar o próprio estado;
-2. caçar monstros compatíveis com sua capacidade;
-3. coletar recursos com as ferramentas corretas;
-4. fabricar itens a partir de materiais disponíveis;
-5. publicar itens à venda e consultar ofertas;
-6. comprar itens quando houver uma oferta compatível e recursos suficientes;
-7. evoluir para atividades de Tier superior quando cumprir os requisitos.
+### Sequência da quest
 
-O tutorial ensina o funcionamento do mundo, mas não deve determinar para sempre o comportamento do agente. Depois de aprender o básico, ele escolhe suas próprias atividades.
+1. Conhecer a vila conversando com os NPCs.
+2. Aprender a coletar recursos de Tier 1 e usar as ferramentas adequadas.
+3. Aprender a caçar enfrentando uma criatura compatível.
+4. Reunir os materiais que faltam por meios válidos.
+5. Fabricar o primeiro item Tier 1 no NPC correto.
+6. Aprender a usar o inventário e o baú.
+7. Aprender a consultar ofertas, comprar e publicar uma oferta de venda.
+8. Conhecer transporte, teleportador e masmorra.
+
+A quest verifica o estado real: se o agente já tem um material, não precisa coletá-lo novamente; se perder um recurso necessário, precisa obtê-lo legitimamente. O tutorial ensina, mas não escolhe sua profissão definitiva.
+
+### Decisões próprias
+
+O teleportador explica destinos, custos em alzes e condições. O agente compara teleportar ou ir a pé considerando custo, tempo, distância, riscos, carga, objetivo e informações conhecidas. Conversar com um NPC não obriga a usar o serviço.
+
+## Mundo abstrato, sem mapa
+
+Regiões, distâncias, rotas, recursos e perigos serão representados por dados. Viajar consome tempo e pode envolver riscos, mas nenhuma coordenada ou desenho é necessário inicialmente. Um console textual exibirá diálogos, decisões, quests, inventário e eventos. Uma visualização gráfica poderá ser adicionada depois sem controlar a inteligência.
 
 ## Economia e mercado
 
-O mercado mantém ofertas persistentes. Publicar um item não significa que ele foi vendido: o item continua pertencendo ao vendedor até uma transação válida. Quando a compra acontece, o item e o dinheiro são transferidos de forma consistente e a operação é registrada.
+- **Mercado entre agentes:** oferta e demanda surgem das decisões dos habitantes.
+- **Black Market sistêmico:** inspirado conceitualmente no Black Market de Albion Online, com ordens elegíveis e orçamento limitado; não compra tudo infinitamente.
 
-O projeto prevê dois mecanismos diferentes:
-
-- **Mercado entre agentes:** oferta e demanda surgem das decisões dos próprios habitantes.
-- **Black Market sistêmico:** mecanismo inspirado no Black Market de Albion Online, com ordens de compra limitadas que podem absorver itens elegíveis. Não deve ser um comprador infinito a preço garantido.
-
-O tutorial poderá exibir ofertas de Tier 2 desde o início para ensinar a comprar, mesmo que o agente ainda não saiba fabricar ou usar esses itens. O acesso à compra não concede automaticamente conhecimento, habilidade ou capacidade de uso.
+Um item listado continua pertencendo ao vendedor até uma transação válida. A compra transfere item e dinheiro de forma consistente e registra a operação. Uma oferta pode ficar esperando um comprador enquanto o agente segue com outras atividades. Ofertas Tier 2 podem ensinar compra sem conceder habilidade para fabricar ou usar o item.
 
 ## Progressão por Tier
 
-Os Tiers representam faixas de materiais, ferramentas, receitas, equipamentos e desafios. A progressão de cada atividade deve ser separada: praticar caçada não concede automaticamente domínio de coleta ou fabricação.
-
-Exemplo: para coletar um recurso de Tier 2, o agente pode precisar ter desbloqueado essa faixa e possuir a ferramenta adequada. Ele pode fabricar a ferramenta, comprá-la de outro agente ou encontrar outra forma legítima de obtê-la.
+A progressão de caça, coleta e fabricação é independente. Para coletar Tier 2, o agente pode precisar de desbloqueio e ferramenta adequada; pode fabricar ou comprar a ferramenta. Conhecimento, capacidade e posse de recursos são estados distintos.
 
 ## Arquitetura pretendida
 
-- **Núcleo da sociedade:** objetivos, personalidade, memória, relações, tomada de decisão e avaliação de oportunidades.
-- **Modelo de mundo e economia:** recursos, inventários, receitas, mercado, transações, regiões, risco e persistência.
-- **Regras de simulação:** validação e aplicação das consequências das ações.
-- **Adaptadores de ambiente:** interface entre o núcleo e um simulador ou, futuramente, um servidor de MMORPG.
-- **Visualização Godot:** mapa 2D e ferramentas de observação, sem ser dona da lógica dos agentes.
-- **Camada de IA generativa:** componente opcional para diálogo e interações complexas, desacoplado das regras críticas.
+- **Núcleo do agente:** objetivos, personalidade, memória, relações, conhecimento limitado e decisão.
+- **Motor de regras:** valida ações e aplica consequências.
+- **Mundo e economia:** regiões abstratas, recursos, inventário, receitas, mercado, riscos e persistência.
+- **NPCs e quests:** diálogos, serviços, conhecimento e objetivos tutoriais condicionais.
+- **Console textual:** observação e explicação das decisões.
+- **Visualização futura:** camada opcional, independente da lógica.
+- **Adaptador futuro:** possível conexão com servidor de MMORPG, que continuará autoridade sobre as regras reais do jogo.
 
-O laboratório inicial usará Godot para visualização e experimentação. A lógica deverá poder ser executada sem renderização para facilitar testes, simulações aceleradas e aumento de escala.
+## Escala de validação
+
+- **1 agente:** tutorial, coleta/caça, fabricação e publicação de oferta.
+- **2 agentes:** compra real de uma oferta persistente.
+- **5 agentes:** validar interações e diversidade de decisões.
+- **10–25 agentes:** observar escassez, preços e economia emergente.
+- **50 agentes:** testar grupos, reputação e risco.
+- **100+:** somente após validar coerência, persistência e desempenho.
 
 ## Fora do escopo inicial
 
-- Construir imediatamente um MMORPG completo.
-- Implementar centenas de agentes antes de validar o ciclo básico.
-- Criar uma história roteirizada para cada personagem.
-- Integrar já um servidor de jogo real.
-- Usar IA generativa para cada ação de movimento, coleta ou combate.
-- Copiar código, marcas ou assets proprietários de Albion Online ou de outros jogos.
+- Construir um MMORPG completo de imediato.
+- Criar mapa gráfico antes de validar o simulador textual.
+- Implementar centenas de agentes antes do ciclo básico.
+- Roteirizar a vida inteira de cada personagem.
+- Integrar um servidor real nesta fase.
+- Usar IA generativa para cada ação.
+- Copiar código ou assets proprietários de outros jogos.
 
 ## Plano inicial
 
-O plano de implementação, critérios de aceite e etapas de validação estão em **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)**.
+Consulte **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)** para fases, critérios de aceite e testes.
 
 ## Estado atual
 
-O repositório está no início da fase de definição. As decisões deste README são a direção inicial do projeto; detalhes de balanceamento, fórmulas econômicas, persistência e implementação ainda precisam ser definidos e validados por testes.
+O repositório está em planejamento. O próximo passo é preparar a base executável do simulador textual e implementar o núcleo do agente e o tutorial, sem depender de mapa gráfico.
 
 ## Licenciamento e referências
 
-Este projeto é experimental e independente. Albion Online serve apenas como referência conceitual para algumas mecânicas de economia e progressão; o projeto não é afiliado ao jogo e não pretende copiar seus assets ou conteúdo protegido. A licença do próprio projeto deverá ser definida antes de distribuir código ou conteúdo em uma versão pública.
+Projeto experimental independente. Albion Online é apenas uma referência conceitual; não há afiliação nem intenção de copiar assets ou conteúdo protegido. A licença do projeto será definida antes de distribuir código ou conteúdo publicamente.
