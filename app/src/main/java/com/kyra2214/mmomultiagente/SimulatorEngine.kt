@@ -75,7 +75,12 @@ class SimulatorEngine(
             addLog("Tick $worldTick — $message")
             return message
         }
-        if (isReadyForT3Dungeon() && !dungeonCompleted && (dungeonAttempts == 0 || worldTick % 50L == 0L)) {
+        repairDamagedEquipment()?.let { message ->
+            addLog("Tick $worldTick — $message")
+            return message
+        }
+        val hasUnrepairedWear = gearDamage.values.any { it > 0 }
+        if (isReadyForT3Dungeon() && !hasUnrepairedWear && !dungeonCompleted && (dungeonAttempts == 0 || worldTick % 50L == 0L)) {
             val result = T3DungeonSimulator.runRandom(equippedGear, health.coerceAtLeast(1))
             dungeonAttempts += 1
             health = result.playerHpRemaining
@@ -106,10 +111,6 @@ class SimulatorEngine(
             health = 100
             val brokenText = if (wornOut.isEmpty()) "" else " Itens que precisam ser refeitos: " + wornOut.joinToString() + "."
             val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
-            addLog("Tick $worldTick — $message")
-            return message
-        }
-        repairDamagedEquipment()?.let { message ->
             addLog("Tick $worldTick — $message")
             return message
         }
