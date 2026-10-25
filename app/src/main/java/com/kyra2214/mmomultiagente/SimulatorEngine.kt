@@ -22,7 +22,8 @@ class SimulatorEngine(
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
-    )
+    ),
+    var agentName: String = "Aldren"
 ) {
     val inventory = inventory.toMutableMap()
     val chest = chest.toMutableMap()
@@ -87,20 +88,20 @@ class SimulatorEngine(
             if (result.outcome == DungeonOutcome.VICTORY) {
                 dungeonCompleted = true
                 result.chest?.lootItemIds?.forEach { inventory.addItem(it, 1) }
-                val message = "Aldren vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
+                val message = "${agentName} vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
                 addLog("Tick $worldTick — $message")
                 return message
             }
             if (result.outcome == DungeonOutcome.WITHDRAWN) {
                 health = 100
-                val message = "Aldren percebe que o combate está difícil, recua para uma área segura, sai da masmorra e descansa antes de voltar. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
+                val message = "${agentName} percebe que o combate está difícil, recua para uma área segura, sai da masmorra e descansa antes de voltar. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
                 addLog("Tick $worldTick — $message")
                 return message
             }
             val wornOut = recordDungeonDefeatWear()
             health = 100
             val brokenText = if (wornOut.isEmpty()) "" else " Itens que precisam ser refeitos: " + wornOut.joinToString() + "."
-            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
+            val message = "${agentName} é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
             addLog("Tick $worldTick — $message")
             return message
         }
@@ -162,7 +163,7 @@ class SimulatorEngine(
         if (silver < cost) return null
         silver -= cost
         gearDamage[slot] = 0
-        return "Aldren visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
+        return "${agentName} visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
     }
 
     private fun gatherNeededMaterials(): String {
@@ -203,9 +204,9 @@ class SimulatorEngine(
             }
         }
         return if (gathered.isNotEmpty()) {
-            "Aldren consulta os estoques e coleta recursos compatíveis com suas especializações: ${gathered.joinToString(", ")}."
+            "${agentName} consulta os estoques e coleta recursos compatíveis com suas especializações: ${gathered.joinToString(", ")}."
         } else {
-            "Aldren verifica as fontes disponíveis; não coleta porque já tem matéria-prima ou material processado para as necessidades imediatas."
+            "${agentName} verifica as fontes disponíveis; não coleta porque já tem matéria-prima ou material processado para as necessidades imediatas."
         }
     }
 
@@ -217,17 +218,17 @@ class SimulatorEngine(
         inventory.addItem("Couro ${tier.name}", 1)
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
-        return "Aldren caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
+        return "${agentName} caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
     }
 
     private fun fishIfUseful(): String {
         // Fishing requires a rod. Without one, the agent must gather/refine/craft first.
         if ((inventory["Vara de Pesca T1"] ?: 0) <= 0) {
-            return "Aldren avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
+            return "${agentName} avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
         }
         inventory.addItem("Peixe T1", 2)
         progression.recordSuccessfulAction(SkillId.FISHING, Tier.T1)
-        return "Aldren usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
+        return "${agentName} usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
     }
 
     private fun listOrReviewMarket(): String {
@@ -235,9 +236,9 @@ class SimulatorEngine(
             marketListing = "Peixe T1"
             marketPrice = 5
             marketListingAgeTicks = 0
-            return "Aldren publica uma oferta de 1 Peixe T1 por 5 alzes. O peixe fica reservado; nenhum alze é recebido antes da venda."
+            return "${agentName} publica uma oferta de 1 Peixe T1 por 5 alzes. O peixe fica reservado; nenhum alze é recebido antes da venda."
         }
-        return "Aldren revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
+        return "${agentName} revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
     }
 
     private fun refineOneMaterial(): String {
@@ -254,11 +255,11 @@ class SimulatorEngine(
         }
         val recipe = recipes.firstOrNull { r ->
             progression.canPerformTier(r.skill, r.tier) && (inventory[r.raw] ?: 0) > 0
-        } ?: return "Aldren consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
+        } ?: return "${agentName} consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
         inventory.removeItem(recipe.raw, 1)
         inventory.addItem(recipe.output, 1)
         progression.recordSuccessfulAction(recipe.skill, recipe.tier)
-        return "Aldren realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
+        return "${agentName} realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
 
     /**
@@ -300,7 +301,7 @@ class SimulatorEngine(
             // New equipment starts intact; wear belongs to the replaced piece.
             gearDamage.remove(slot)
         }
-        return "Aldren fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
+        return "${agentName} fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
     }
 
     private fun materialDisplayName(itemId: String): String {
@@ -332,7 +333,7 @@ class SimulatorEngine(
 
     private fun craftFishingRod(): String {
         if ((inventory["Vara de Pesca T1"] ?: 0) > 0) {
-            return "Aldren já possui uma Vara de Pesca T1; não fabrica outra sem necessidade."
+            return "${agentName} já possui uma Vara de Pesca T1; não fabrica outra sem necessidade."
         }
         if ((inventory["Prancha T1"] ?: 0) < 1 || (inventory["Tecido T1"] ?: 0) < 1) {
             return "Fabricação da vara adiada: faltam 1 Prancha T1 e 1 Tecido T1."
@@ -342,7 +343,7 @@ class SimulatorEngine(
         inventory.addItem("Vara de Pesca T1", 1)
         skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
-        return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
+        return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
     }
 
     private fun craftOneItem(): String {
@@ -375,9 +376,9 @@ class SimulatorEngine(
             inventory.addItem("Vara de Pesca T1", 1)
             skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
             progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
-            return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
+            return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
         }
-        return "Aldren compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais para o tier-alvo ${targetTier.name}."
+        return "${agentName} compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais para o tier-alvo ${targetTier.name}."
     }
 
     private fun equipmentTargetTier(): Tier {
@@ -386,7 +387,7 @@ class SimulatorEngine(
 
     fun step(): String {
         if (isComplete) {
-            val message = "Tutorial concluído. Aldren agora pode escolher seus próprios objetivos."
+            val message = "Tutorial concluído. ${agentName} agora pode escolher seus próprios objetivos."
             addLog(message)
             return message
         }
@@ -394,11 +395,11 @@ class SimulatorEngine(
             in 0..10 -> {
                 val npc = npcs[stage]
                 learnedNpcIds.add(npc.id)
-                "Aldren conversa com " + npc.name + ": “" + npc.explanation + "”"
+                "${agentName} conversa com " + npc.name + ": “" + npc.explanation + "”"
             }
             11 -> {
                 learnedNpcIds.add(repairNpc.id)
-                "Aldren conversa com ${repairNpc.name}: “${repairNpc.explanation}”"
+                "${agentName} conversa com ${repairNpc.name}: “${repairNpc.explanation}”"
             }
             12 -> {
                 inventory.addItem("Minério T1", 3)
@@ -409,13 +410,13 @@ class SimulatorEngine(
             13 -> {
                 inventory.addItem("Couro T1", 2)
                 silver += 10
-                "Caçada concluída: criatura T1 derrotada. Aldren recebeu 2 Couros T1 e 10 alzes como recompensa."
+                "Caçada concluída: criatura T1 derrotada. ${agentName} recebeu 2 Couros T1 e 10 alzes como recompensa."
             }
             14 -> craftStarterArmor()
             15 -> {
                 if (inventory.removeItem("Fibra T1", 1)) {
                     chest.addItem("Fibra T1", 1)
-                    "Aldren guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
+                    "${agentName} guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
                 } else {
                     "O baú foi apresentado. Não havia Fibra T1 sobrando; nenhuma quantidade foi criada."
                 }
@@ -425,9 +426,9 @@ class SimulatorEngine(
                     marketListing = "Armadura T1"
                     marketPrice = 25
                     marketListingAgeTicks = 0
-                    "Oferta publicada: Armadura T1 por 25 alzes. O item está reservado na oferta e continua pertencendo a Aldren. Ainda não foi vendido; nenhum dinheiro foi recebido."
+                    "Oferta publicada: Armadura T1 por 25 alzes. O item está reservado na oferta e continua pertencendo a ${agentName}. Ainda não foi vendido; nenhum dinheiro foi recebido."
                 } else {
-                    "Oferta não publicada: Aldren não possui Armadura T1 no inventário."
+                    "Oferta não publicada: ${agentName} não possui Armadura T1 no inventário."
                 }
             }
             17 -> {
@@ -439,12 +440,12 @@ class SimulatorEngine(
                     "Decisão de transporte: teleportar por " + cost + " alzes. O custo foi descontado do saldo."
                 }
             }
-            18 -> "Aldren conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
+            18 -> "${agentName} conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
             else -> "Etapa sem ação definida."
         }
         addLog(message)
         stage += 1
-        if (isComplete) addLog("Quest inicial concluída. A partir de agora, Aldren poderá definir objetivos próprios.")
+        if (isComplete) addLog("Quest inicial concluída. A partir de agora, ${agentName} poderá definir objetivos próprios.")
         return message
     }
 
@@ -460,7 +461,7 @@ class SimulatorEngine(
         inventory.addItem("Armadura T1", 1)
         skillCraftCounts["armaduras"] = (skillCraftCounts["armaduras"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.ARMOR_CRAFTING, Tier.T1)
-        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. Aldren fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
+        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. ${agentName} fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
     }
 
     private fun addLog(message: String) {
@@ -487,7 +488,7 @@ class SimulatorEngine(
         dungeonAttempts = 0
         health = 100
         log.clear()
-        log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
+        log.add("Dia 1 começou. ${agentName} recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
     }
 
@@ -520,7 +521,7 @@ class SimulatorEngine(
         const val TOTAL_STAGES = 19
         private const val MAX_LOG_ENTRIES = 120
 
-        fun loadFrom(preferences: android.content.SharedPreferences): SimulatorEngine {
+        fun loadFrom(preferences: android.content.SharedPreferences, agentName: String = "Aldren"): SimulatorEngine {
             val learned = preferences.getString("learned_npcs", "").orEmpty()
                 .split(",").mapNotNull { it.toIntOrNull() }.toSet()
             val savedLog = preferences.getString("log", null)?.split("\u001e")?.filter { it.isNotBlank() }
@@ -565,9 +566,10 @@ class SimulatorEngine(
                     }
                 }.toMap(),
                 logEntries = savedLog ?: listOf(
-                    "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
+                    "Dia 1 começou. ${agentName} recebeu a quest: Aprendendo a sobreviver.",
                     "Objetivo: conhecer a vila e aprender as mecânicas básicas."
-                )
+                ),
+                agentName = agentName
             )
         }
 
