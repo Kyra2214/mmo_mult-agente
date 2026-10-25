@@ -4,6 +4,9 @@
 
 - Modelo de evento tipado em `EconomyLedger.kt`.
 - Cada evento exige agente, tick não negativo, item/identificador, quantidade positiva e causa.
+- Eventos distintos para moeda inicial de referência (`CURRENCY_INITIALIZED`), emissão (`CURRENCY_MINTED`) e remoção (`CURRENCY_BURNED`), para não confundir saldo de abertura com dinheiro criado durante a simulação.
+- `ITEM_TRANSFERRED` registra movimentações internas para baú/equipamento sem contá-las como produção ou consumo de recurso.
+- Reparos, teleporte, fabricação da vara de pesca e loot da masmorra agora emitem eventos econômicos.
 - O coordenador de mercado registra a transação no ledger para comprador e vendedor.
 - A tela Eventos mostra a quantidade de liquidações e informa o escopo limitado do ledger.
 - Testes cobrem validação de eventos e registro de liquidações.
@@ -11,9 +14,9 @@
 ## Limitações conhecidas
 
 - O ledger agora é serializado em `SharedPreferences` do servidor e recuperado na abertura do app. Linhas inválidas são ignoradas durante a recuperação; ainda não existe reconciliação/replay com os saldos e inventários dos agentes.
-- As rotinas de coleta, caça, pesca, refino, fabricação e tutorial ainda não estão todas ligadas ao ledger.
+- A instrumentação ainda precisa de auditoria por mutação para garantir que todo caminho esteja coberto, incluindo mudanças de equipamento e estados salvos legados.
 - Não existe um estoque natural compartilhado finito; por isso ainda há caminhos em que a produção pode gerar itens diretamente.
-- A moeda inicial e algumas recompensas ainda não têm uma contabilidade global completa.
+- Os saldos iniciais de perfis existentes recebem um evento de referência ao iniciar o ledger; isso não é emissão monetária. Ainda falta uma reconciliação integral entre todos os saldos/inventários persistidos e o histórico.
 - A UI não deve apresentar o ledger atual como balanço econômico total.
 
 ## Próximos critérios de aceite
@@ -24,6 +27,15 @@
 4. **Parcialmente atendido:** o histórico sobrevive a reinício; ainda falta reconciliar o histórico com saldos/quantidades dos agentes e testar reinicialização do app no dispositivo.
 5. Testes devem verificar conservação de itens e moeda em compra, fabricação, refino, recompensa, reparo e falha de ação.
 
+
+## Additional economic mutation coverage
+
+- Teleporte and equipment repair record currency removal.
+- Fishing-rod recipes record consumed materials and the crafted item.
+- Dungeon loot records item creation; moving items between inventory, chest, and equipment is tracked as an internal transfer rather than creation/consumption.
+- Existing profiles get a one-time opening-balance baseline event, distinct from currency minting.
+
+These additions improve coverage but do not yet prove that every mutation path is covered; test and reconciliation work remains required.
 
 ## Finite shared resource nodes added
 
