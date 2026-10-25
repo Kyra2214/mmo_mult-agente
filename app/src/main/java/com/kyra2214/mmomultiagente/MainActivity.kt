@@ -140,6 +140,10 @@ class MainActivity : Activity() {
         addInfoCard(
             "Estado: executando\nAgentes ativos: ${agents.size}\nTicks acumulados: $totalTicks\nAlzes em circulação (saldos dos agentes): $totalSilver\nOfertas pendentes: $offers"
         )
+        val stockSnapshot = worldResourceStore.snapshot()
+        val remainingUnits = stockSnapshot.values.sum()
+        val depletedNodes = stockSnapshot.count { it.value == 0 }
+        addInfoCard("ESTOQUES COMPARTILHADOS\nUnidades restantes nas fontes: $remainingUnits\nTipos de fonte esgotados: $depletedNodes de ${stockSnapshot.size}\nOs cinco agentes consomem os mesmos estoques finitos.")
         addSectionTitle("AGENTES")
         agents.forEach { agent ->
             val e = agent.engine
