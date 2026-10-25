@@ -58,19 +58,21 @@ object T3DungeonSimulator {
         for (enemy in enemies) {
             var enemyHp = enemy.hp
             var rounds = 0
-            var consecutiveFailedAttacks = 0
+            var consecutiveMisses = 0
             while (enemyHp > 0 && health > 0 && rounds < 20) {
                 rounds++
                 if (roll() >= 8) {
                     enemyHp -= playerDamage
-                    consecutiveFailedAttacks = 0
+                    consecutiveMisses = 0
                 } else {
-                    consecutiveFailedAttacks++
+                    consecutiveMisses++
                 }
                 if (enemyHp > 0 && roll() >= 5) health -= enemy.damage
-                // A cautious agent can retreat instead of forcing a losing fight.
-                if (consecutiveFailedAttacks >= 4 || health in 1..25) {
-                    encounters += EncounterResult(enemy.name, enemyHp.coerceAtLeast(0), health.coerceAtLeast(1), rounds, false)
+
+                // Retreat alive if attacks repeatedly fail or HP becomes dangerously low.
+                if (enemyHp > 0 && health > 0 &&
+                    (consecutiveMisses >= 4 || (health <= enemy.damage * 2 && rounds >= 2))) {
+                    encounters += EncounterResult(enemy.name, enemyHp.coerceAtLeast(0), health.coerceAtLeast(0), rounds, false)
                     return T3DungeonResult(DungeonOutcome.WITHDRAWN, health.coerceAtLeast(1), encounters, null)
                 }
             }
