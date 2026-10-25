@@ -18,17 +18,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    testOptions {
-        unitTests {
-            isReturnDefaultValues = true
-            all {
-                testLogging {
-                    events("failed")
-                    exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-                    showStandardStreams = true
-                }
-            }
-        }
-    }
+    testOptions { unitTests.isReturnDefaultValues = true }
 }
 dependencies { testImplementation("junit:junit:4.13.2") }
