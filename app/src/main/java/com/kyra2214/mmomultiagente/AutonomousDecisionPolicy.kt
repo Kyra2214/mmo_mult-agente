@@ -36,19 +36,19 @@ object AutonomousDecisionPolicy {
             }
             if (missing.isEmpty() && progression.canPerformTier(recipe.skill, tier)) return AutonomousAction.CRAFT
 
-            val missingLeather = missing.any { it.itemId.startsWith("TANNED_LEATHER_") }
-            if (missingLeather && !has("Couro ${tier.name}")) return AutonomousAction.HUNT
-
             val requiredRaw = missing.mapNotNull { cost ->
-                val raw = when {
-                    cost.itemId.startsWith("METAL_BAR_") -> "Minério"
-                    cost.itemId.startsWith("TANNED_LEATHER_") -> "Couro"
-                    cost.itemId.startsWith("CLOTH_") -> "Fibra"
-                    cost.itemId.startsWith("PLANK_") -> "Madeira"
-                    cost.itemId.startsWith("ARCANE_COMPONENT_") -> "Fragmento Arcano"
+                val rawAndSkill = when {
+                    cost.itemId.startsWith("METAL_BAR_") -> "Minério" to SkillId.ORE_REFINING
+                    cost.itemId.startsWith("TANNED_LEATHER_") -> "Couro" to SkillId.LEATHER_REFINING
+                    cost.itemId.startsWith("CLOTH_") -> "Fibra" to SkillId.FIBER_REFINING
+                    cost.itemId.startsWith("PLANK_") -> "Madeira" to SkillId.WOOD_REFINING
+                    cost.itemId.startsWith("ARCANE_COMPONENT_") -> "Fragmento Arcano" to SkillId.ARCANE_REFINING
                     else -> null
                 }
-                raw?.let { "$it ${tier.name}" }
+                rawAndSkill?.let { (raw, skill) -> Triple("$raw ${tier.name}", raw, skill) }
+            }
+            val requiredRawCanRefine = requiredRaw.any { (exactName, _, skill) ->
+                has(exactName) && progression.canPerformTier(skill, tier)
             }
             val anyRefinableRaw = listOf(
                 "Minério" to SkillId.ORE_REFINING,
@@ -60,7 +60,11 @@ object AutonomousDecisionPolicy {
             ).any { (raw, skill) ->
                 Tier.entries.any { rawTier -> has("$raw ${rawTier.name}") && progression.canPerformTier(skill, rawTier) }
             }
-            if (requiredRaw.any { has(it) } || anyRefinableRaw) return AutonomousAction.REFINE
+            if (requiredRawCanRefine || anyRefinableRaw) return AutonomousAction.REFINE
+
+            val missingLeather = missing.any { it.itemId.startsWith("TANNED_LEATHER_") }
+            val anyRawHide = Tier.entries.any { rawTier -> has("Couro ${rawTier.name}") }
+            if (missingLeather && !anyRawHide) return AutonomousAction.HUNT
             return AutonomousAction.GATHER
         }
 
