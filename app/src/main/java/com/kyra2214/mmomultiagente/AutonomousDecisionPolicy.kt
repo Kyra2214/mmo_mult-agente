@@ -7,12 +7,12 @@ object AutonomousDecisionPolicy {
     fun choose(inventory: Map<String, Int>, silver: Int, marketListing: String?, progression: SkillProgression? = null): AutonomousAction {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
-        // Complete any unlocked T1 equipment recipe before gathering more stock.
-        val affordableEquipment = Tier.entries.reversed().any { tier ->
-            TierRecipes.fullSet(tier).any { recipe ->
-                (progression == null || progression.canPerformTier(recipe.skill, tier)) &&
-                    recipe.materials.all { cost -> has(materialDisplayName(cost.itemId), cost.quantity) }
-            }
+        // Advance one shared equipment tier at a time; all seven specializations
+        // must unlock the next tier before the economy moves the whole set forward.
+        val targetTier = equipmentTargetTier(progression)
+        val affordableEquipment = TierRecipes.fullSet(targetTier).any { recipe ->
+            (progression == null || progression.canPerformTier(recipe.skill, targetTier)) &&
+                recipe.materials.all { cost -> has(materialDisplayName(cost.itemId), cost.quantity) }
         }
         if (affordableEquipment) return AutonomousAction.CRAFT
         if (has("Prancha T1") && has("Fibra T1") && !has("Vara de Pesca T1")) {
@@ -43,37 +43,30 @@ object AutonomousDecisionPolicy {
         // Selling is an available goal when there is a real unlisted item.
         if (has("Peixe T1") && marketListing == null) return AutonomousAction.TRADE
 
-        // Avoid gathering if the inventory already has usable processed materials.
-        val tieredCraftingNeed = Tier.entries.reversed().any { tier ->
-            (inventory["Barra ${tier.name}"] ?: 0) < 2 ||
-                (inventory["Couro Curtido ${tier.name}"] ?: 0) < 2 ||
-                (inventory["Tecido ${tier.name}"] ?: 0) < 1
-        }
-        if (tieredCraftingNeed && Tier.entries.any { tier -> has("Couro Curtido ${tier.name}", 2) || has("Couro ${tier.name}") }) {
-            val hideTier = Tier.entries.reversed().firstOrNull { tier ->
-                (inventory["Couro Curtido ${tier.name}"] ?: 0) < 2 && !has("Couro ${tier.name}")
-            }
-            if (hideTier != null) return AutonomousAction.HUNT
-        }
+        // If the target recipe lacks leather, hunt rather than repeatedly gathering unrelated stock.
+        val needsLeather = (inventory["Couro Curtido ${targetTier.name}"] ?: 0) < 2
+        if (needsLeather && !has("Couro ${targetTier.name}")) return AutonomousAction.HUNT
 
-        val lacksTieredResource = Tier.entries.reversed().any { tier ->
-            val canGatherTier = progression == null || listOf(
-                SkillId.MINING, SkillId.WOODCUTTING, SkillId.FIBER_GATHERING
-            ).any { progression.canPerformTier(it, tier) }
-            canGatherTier && (
-                (!has("Barra ${tier.name}", 2) && !has("Minério ${tier.name}")) ||
-                (!has("Prancha ${tier.name}") && !has("Madeira ${tier.name}")) ||
-                (!has("Tecido ${tier.name}") && !has("Fibra ${tier.name}")) ||
-                (!has("Bloco de Pedra ${tier.name}") && !has("Pedra ${tier.name}")) ||
-                (!has("Componente Arcano ${tier.name}") && !has("Fragmento Arcano ${tier.name}"))
-            )
-        }
-        if (lacksTieredResource) return AutonomousAction.GATHER
+        val lacksTargetTierResources =
+            (!has("Barra ${targetTier.name}", 2) && !has("Minério ${targetTier.name}")) ||
+            (!has("Prancha ${targetTier.name}") && !has("Madeira ${targetTier.name}")) ||
+            (!has("Tecido ${targetTier.name}") && !has("Fibra ${targetTier.name}")) ||
+            (!has("Bloco de Pedra ${targetTier.name}") && !has("Pedra ${targetTier.name}")) ||
+            (!has("Componente Arcano ${targetTier.name}") && !has("Fragmento Arcano ${targetTier.name}"))
+        if (lacksTargetTierResources) return AutonomousAction.GATHER
+
         if (silver < 30) return AutonomousAction.HUNT
         return AutonomousAction.TRADE
     }
 }
 
+private fun equipmentTargetTier(progression: SkillProgression?): Tier {
+    if (progression == null) return Tier.T1
+    val craftingSkills = EquipmentSlot.entries.map { TierRecipes.recipe(it, Tier.T1).skill }
+    return Tier.fromRank(craftingSkills.minOf { skill ->
+        SkillProgression.highestUnlockedTier(progression.snapshot(skill).level).rank
+    })
+}
 
 private fun materialDisplayName(itemId: String): String {
     val parts = itemId.split("_T")
