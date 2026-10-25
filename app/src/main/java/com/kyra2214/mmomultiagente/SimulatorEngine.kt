@@ -92,8 +92,24 @@ class SimulatorEngine(
                 addLog("Tick $worldTick — $message")
                 return message
             }
+            val wornOut = mutableListOf<String>()
+            equippedGear.toMap().forEach { (slot, tier) ->
+                val damage = (gearDamage[slot] ?: 0) + 1
+                if (damage >= 3) {
+                    equippedGear.remove(slot)
+                    gearDamage.remove(slot)
+                    wornOut.add(slot.name + " " + tier.name)
+                } else {
+                    gearDamage[slot] = damage
+                }
+            }
             health = 100
-            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte; recupera-se na cidade e poderá tentar novamente depois."
+            val brokenText = if (wornOut.isEmpty()) "" else " Itens que precisam ser refeitos: " + wornOut.joinToString() + "."
+            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
+            addLog("Tick $worldTick — $message")
+            return message
+        }
+        repairDamagedEquipment()?.let { message ->
             addLog("Tick $worldTick — $message")
             return message
         }
