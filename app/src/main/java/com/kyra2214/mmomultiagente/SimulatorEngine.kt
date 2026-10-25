@@ -97,17 +97,7 @@ class SimulatorEngine(
                 addLog("Tick $worldTick — $message")
                 return message
             }
-            val wornOut = mutableListOf<String>()
-            equippedGear.toMap().forEach { (slot, tier) ->
-                val damage = (gearDamage[slot] ?: 0) + 1
-                if (damage >= 3) {
-                    equippedGear.remove(slot)
-                    gearDamage.remove(slot)
-                    wornOut.add(slot.name + " " + tier.name)
-                } else {
-                    gearDamage[slot] = damage
-                }
-            }
+            val wornOut = recordDungeonDefeatWear()
             health = 100
             val brokenText = if (wornOut.isEmpty()) "" else " Itens que precisam ser refeitos: " + wornOut.joinToString() + "."
             val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
@@ -147,6 +137,21 @@ class SimulatorEngine(
 
     private fun isReadyForT3Dungeon(): Boolean =
         EquipmentSlot.entries.all { slot -> (equippedGear[slot]?.rank ?: 0) >= Tier.T3.rank }
+
+    internal fun recordDungeonDefeatWear(): List<String> {
+        val broken = mutableListOf<String>()
+        equippedGear.toMap().forEach { (slot, tier) ->
+            val damage = (gearDamage[slot] ?: 0) + 1
+            if (damage >= 3) {
+                equippedGear.remove(slot)
+                gearDamage.remove(slot)
+                broken.add(slot.name + " " + tier.name)
+            } else {
+                gearDamage[slot] = damage
+            }
+        }
+        return broken
+    }
 
     private fun repairDamagedEquipment(): String? {
         val entry = gearDamage.entries.filter { it.value > 0 && equippedGear.containsKey(it.key) }
