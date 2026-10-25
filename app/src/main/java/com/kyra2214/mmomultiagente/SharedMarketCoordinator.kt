@@ -35,7 +35,7 @@ class SharedMarketCoordinator {
      * One deterministic matching pass per server tick. Buyers must be other agents,
      * have enough currency, and have a simple observable demand for the item.
      */
-    fun tick(participants: List<MarketParticipant>): List<String> {
+    fun tick(participants: List<MarketParticipant>, ledger: EconomyLedger? = null): List<String> {
         val byId = participants.associateBy { it.id }
         val events = mutableListOf<String>()
         val offers = currentOffers(participants)
@@ -66,6 +66,24 @@ class SharedMarketCoordinator {
             seller.engine.marketListing = null
             seller.engine.marketPrice = null
             seller.engine.marketListingAgeTicks = 0
+            ledger?.record(EconomyEvent(
+                agentId = buyer.id,
+                tick = buyer.engine.worldTick,
+                type = EconomyEventType.TRADE_SETTLED,
+                itemId = offer.itemId,
+                quantity = 1,
+                cause = "market-purchase",
+                counterpartyId = seller.id
+            ))
+            ledger?.record(EconomyEvent(
+                agentId = seller.id,
+                tick = seller.engine.worldTick,
+                type = EconomyEventType.TRADE_SETTLED,
+                itemId = offer.itemId,
+                quantity = 1,
+                cause = "market-sale",
+                counterpartyId = buyer.id
+            ))
 
             val message = "Mercado compartilhado: ${buyer.displayName} comprou 1 ${offer.itemId} de ${seller.displayName} por ${offer.unitPrice} alzes."
             buyer.engine.log.add("Tick ${buyer.engine.worldTick} — $message")
