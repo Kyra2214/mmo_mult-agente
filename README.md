@@ -10,7 +10,7 @@ A primeira versão é um **aplicativo Android com simulador textual, sem mapa gr
 
 ## APK para testar
 
-O projeto já contém um protótipo Android Kotlin com identificador `com.kyra2214.mmomultiagente`, versão `0.1.0` e SDK mínimo 26 (Android 8.0 ou superior). O workflow do GitHub Actions executa os testes unitários e constrói um APK de debug.
+O projeto contém um protótipo Android Kotlin com identificador `com.kyra2214.mmomultiagente`, versão `0.1.0` e SDK mínimo 26 (Android 8.0 ou superior). A interface em desenvolvimento organiza a observação em painel do servidor, eventos globais e páginas individuais dos agentes. A população de teste foi ampliada para cinco agentes persistidos separadamente; isso é uma etapa de observabilidade, não prova ainda de economia compartilhada entre agentes. O workflow do GitHub Actions executa os testes unitários e constrói um APK de debug.
 
 1. Abra [GitHub Actions](https://github.com/Kyra2214/mmo_mult-agente/actions).
 2. Entre na execução mais recente de **Android APK** e espere o teste/build terminar.
@@ -115,6 +115,12 @@ A progressão de caça, coleta e fabricação é independente. Para coletar Tier
 ## Plano inicial
 
 Consulte **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)** para fases, critérios de aceite e testes.
+
+## Interface multiagente em desenvolvimento
+
+A branch `feature/emergent-economy-multi-agent-ui` introduz um painel com três áreas: **Servidor** (resumo e agentes clicáveis), **Eventos** (linha do tempo agregada) e **Agentes** (lista e detalhe individual). Cada detalhe mostra estado, saldo, inventário, equipamento, oferta e log de ticks. O protótipo inicial mantém cinco perfis — Aldren, Mira, Borin, Kael e Sera — com persistência separada.
+
+**Limitação importante:** nesta etapa, os motores ainda executam instâncias separadas do simulador legado. O mercado compartilhado com compra/venda real entre esses agentes ainda precisa ser implementado nas fases B/C do plano de economia emergente. Portanto, os painéis permitem observar os ciclos individuais, mas não devem ser interpretados como evidência de comércio emergente multiagente.
 
 ## Estado atual
 
