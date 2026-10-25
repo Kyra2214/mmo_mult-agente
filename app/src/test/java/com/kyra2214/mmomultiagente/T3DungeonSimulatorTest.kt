@@ -23,6 +23,13 @@ class T3DungeonSimulatorTest {
         assertTrue((result.playerHpRemaining) > 0)
     }
 
+    @Test fun agentCanWithdrawWhenCombatBecomesTooDangerous() {
+        val result = T3DungeonSimulator.runWithRolls(fullT3Gear, List(100) { 20 }, d4Roll = 1, initialHealth = 30)
+        assertEquals(DungeonOutcome.WITHDRAWN, result.outcome)
+        assertNull(result.chest)
+        assertTrue(result.playerHpRemaining > 0)
+    }
+
     @Test fun failedCombatDoesNotGrantDungeonChest() {
         val rolls = List(200) { index -> if (index % 2 == 0) 1 else 20 }
         val result = T3DungeonSimulator.runWithRolls(fullT3Gear, rolls, d4Roll = 4)
