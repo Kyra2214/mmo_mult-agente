@@ -6,7 +6,17 @@ O MMO Multiagente simula um mundo de fantasia habitado por agentes autônomos co
 
 ## Abordagem inicial: texto primeiro
 
-A primeira versão será um **simulador textual sem mapa gráfico**. Antes de investir em visualização, vamos validar a lógica dos agentes, o mundo, as quests, os NPCs e a economia. A simulação deverá avançar por turnos ou continuamente, funcionar sem renderização e preservar o estado entre sessões.
+A primeira versão é um **aplicativo Android com simulador textual, sem mapa gráfico**. O núcleo da simulação fica separado da interface e pode ser testado na JVM. A interface permite avançar um passo, executar dez passos, reiniciar e acompanhar o estado; o progresso é salvo no aparelho.
+
+## APK para testar
+
+O projeto já contém um protótipo Android Kotlin com identificador `com.kyra2214.mmomultiagente`, versão `0.1.0` e SDK mínimo 26 (Android 8.0 ou superior). O workflow do GitHub Actions executa os testes unitários e constrói um APK de debug.
+
+1. Abra [GitHub Actions](https://github.com/Kyra2214/mmo_mult-agente/actions).
+2. Entre na execução mais recente de **Android APK** e espere o teste/build terminar.
+3. Quando a execução estiver concluída com sucesso, baixe o artefato `mmo-multiagente-debug-apk`, extraia o ZIP e instale `app-debug.apk` no Android.
+
+O APK de debug é para testes, não uma versão de distribuição assinada para publicação. Se a execução falhar, o artefato não será publicado.
 
 ## Princípios
 
@@ -108,7 +118,7 @@ Consulte **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)** para fases, critéri
 
 ## Estado atual
 
-O repositório está em planejamento. O próximo passo é preparar a base executável do simulador textual e implementar o núcleo do agente e o tutorial, sem depender de mapa gráfico.
+O repositório contém o primeiro protótipo Android executável: interface textual, 11 NPCs, sequência de tutorial, coleta, caça, fabricação T1, baú, oferta persistente em espera, decisão de transporte, salvamento local e testes unitários. Nesta versão, a sequência do tutorial é determinística; ainda não existe um planejador geral autônomo, sistema de compra entre agentes nem economia multiagente completa. O próximo passo é validar a execução de CI e evoluir a lógica com testes.
 
 ## Licenciamento e referências
 
