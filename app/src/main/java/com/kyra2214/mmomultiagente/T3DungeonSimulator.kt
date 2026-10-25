@@ -2,7 +2,7 @@ package com.kyra2214.mmomultiagente
 
 import kotlin.random.Random
 
-enum class DungeonOutcome { NOT_READY, DEFEATED, VICTORY }
+enum class DungeonOutcome { NOT_READY, DEFEATED, WITHDRAWN, VICTORY }
 
 data class EncounterResult(
     val name: String,
@@ -58,10 +58,21 @@ object T3DungeonSimulator {
         for (enemy in enemies) {
             var enemyHp = enemy.hp
             var rounds = 0
+            var consecutiveFailedAttacks = 0
             while (enemyHp > 0 && health > 0 && rounds < 20) {
                 rounds++
-                if (roll() >= 8) enemyHp -= playerDamage
+                if (roll() >= 8) {
+                    enemyHp -= playerDamage
+                    consecutiveFailedAttacks = 0
+                } else {
+                    consecutiveFailedAttacks++
+                }
                 if (enemyHp > 0 && roll() >= 5) health -= enemy.damage
+                // A cautious agent can retreat instead of forcing a losing fight.
+                if (consecutiveFailedAttacks >= 4 || health in 1..25) {
+                    encounters += EncounterResult(enemy.name, enemyHp.coerceAtLeast(0), health.coerceAtLeast(1), rounds, false)
+                    return T3DungeonResult(DungeonOutcome.WITHDRAWN, health.coerceAtLeast(1), encounters, null)
+                }
             }
             val defeated = enemyHp <= 0 && health > 0
             encounters += EncounterResult(enemy.name, enemyHp.coerceAtLeast(0), health.coerceAtLeast(0), rounds, defeated)
