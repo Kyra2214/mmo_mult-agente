@@ -1,7 +1,7 @@
 # Plano técnico — Economia emergente, habilidades e agentes autônomos
 
 **Projeto:** MMO Multiagente  
-**Status:** proposta de arquitetura e sequência de implementação; ainda não implementado  
+**Status:** execução iniciada na Fase A; auditoria inicial registrada em `docs/FASE_A_AUDITORIA_INICIAL.md`. Economia compartilhada e fases B/C ainda não implementadas  
 **Referência conceitual:** ciclos de progressão e produção de Albion Online, adaptados ao simulador. Não reproduzir literalmente sua árvore de nós, conteúdo protegido ou balanceamento.
 
 ## 1. Objetivo
@@ -249,7 +249,7 @@ Preferir catálogos imutáveis carregados uma vez e estado mutável por agente/r
 
 O protótipo já tem política heurística, progressão por especialização, receitas T1–T4, atividades iniciais, equipamento, masmorra e teste prolongado de 20.000 ticks. Entretanto, a política ainda não é um planejador estratégico geral, o mercado atual usa uma única oferta e há caminhos de geração de recursos que precisam de validação rigorosa.
 
-**Próxima ação recomendada:** executar a Fase A como auditoria de código, em seguida corrigir economia rastreável e mercado multi-oferta antes de expandir o catálogo de alimentos, fazendas e poções. Este documento é plano, não evidência de implementação concluída.
+**Execução atual:** a auditoria inicial foi registrada e a interface de observabilidade foi ampliada para cinco perfis com logs individuais. Isso não conclui a Fase A nem implementa comércio compartilhado. Próximas ações: terminar a auditoria dos caminhos de criação/consumo de recursos, validar a persistência por perfil e então iniciar a Fase B (economia rastreável), seguida da Fase C (mercado multi-oferta transacional). Não expandir ainda agricultura, culinária ou alquimia. Este documento é plano; cada fase exige testes e evidência funcional.
 
 ## Referência conceitual
 
