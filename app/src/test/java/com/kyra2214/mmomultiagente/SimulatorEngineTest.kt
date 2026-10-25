@@ -160,8 +160,8 @@ class TierAwareActivityTest {
 class LongRunSimulationTest {
     @Test fun unattendedAgentReachesTheT3DungeonGateAndKeepsRunning() {
         val engine = SimulatorEngine(stage = SimulatorEngine.TOTAL_STAGES)
-        repeat(10_000) { engine.tick() }
-        assertEquals(10_000L, engine.worldTick)
+        repeat(20_000) { engine.tick() }
+        assertEquals(20_000L, engine.worldTick)
         assertTrue(engine.progression.export().values.any { it.totalSuccessfulActions > 0 })
         assertTrue("No equipment after long run. Gear=${engine.equippedGear}; inventory=${engine.inventory}; skills=${engine.progression.export()}",
             engine.equippedGear.isNotEmpty())
@@ -179,6 +179,14 @@ class LongRunSimulationTest {
         assertTrue("magic skill level=${engine.progression.snapshot(SkillId.MAGIC_ITEM_CRAFTING)}", engine.progression.snapshot(SkillId.MAGIC_ITEM_CRAFTING).level >= 3)
         assertTrue("Agent never reached T3 dungeon gate. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
             engine.dungeonAttempts > 0)
-        assertTrue(EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T3.rank })
+        assertTrue("Agent did not reach full T4 equipment. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
+            EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T4.rank })
+        assertTrue(engine.progression.snapshot(SkillId.ARMOR_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.HELMET_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.GLOVE_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.BOOT_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.WEAPON_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.OFF_HAND_CRAFTING).level >= 4)
+        assertTrue(engine.progression.snapshot(SkillId.MAGIC_ITEM_CRAFTING).level >= 4)
     }
 }
