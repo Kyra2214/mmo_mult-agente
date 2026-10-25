@@ -67,6 +67,15 @@ class SharedMarketCoordinator {
             seller.engine.marketPrice = null
             seller.engine.marketListingAgeTicks = 0
             ledger?.record(EconomyEvent(
+                agentId = seller.id,
+                tick = seller.engine.worldTick,
+                type = EconomyEventType.ITEM_TRANSFERRED,
+                itemId = offer.itemId,
+                quantity = 1,
+                cause = "market-escrow-to-buyer",
+                counterpartyId = buyer.id
+            ))
+            ledger?.record(EconomyEvent(
                 agentId = buyer.id,
                 tick = buyer.engine.worldTick,
                 type = EconomyEventType.TRADE_SETTLED,
