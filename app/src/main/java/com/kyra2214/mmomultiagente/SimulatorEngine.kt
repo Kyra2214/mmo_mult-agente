@@ -200,16 +200,32 @@ class SimulatorEngine(
     }
 
     private fun craftOneItem(): String {
-        val recipe = when {
-            (inventory["Barra T1"] ?: 0) >= 2 && (inventory["Couro Curtido T1"] ?: 0) >= 1 && (inventory["Prancha T1"] ?: 0) >= 1 -> { inventory.removeItem("Barra T1", 2); inventory.removeItem("Couro Curtido T1", 1); inventory.removeItem("Prancha T1", 1); "Armadura T1" to "armaduras" }
-            (inventory["Prancha T1"] ?: 0) >= 1 && (inventory["Fibra T1"] ?: 0) >= 1 -> { inventory.removeItem("Prancha T1", 1); inventory.removeItem("Fibra T1", 1); "Vara de Pesca T1" to "ferramentas" }
-            else -> null
-        } ?: return "Aldren compara receitas conhecidas, mas não fabrica: nenhuma receita disponível tem todos os materiais exigidos."
-        inventory.addItem(recipe.first, 1)
-        skillCraftCounts[recipe.second] = (skillCraftCounts[recipe.second] ?: 0) + 1
-        val skill = if (recipe.second == "armaduras") SkillId.ARMOR_CRAFTING else SkillId.TOOL_CRAFTING
-        progression.recordSuccessfulAction(skill, Tier.T1)
-        return "Aldren fabrica 1 ${recipe.first} consumindo os materiais da receita. Progresso de ${recipe.second}: ${skillCraftCounts[recipe.second]} item(ns)."
+        // Prefer an equipment recipe that is unlocked and fully affordable.
+        for (slot in EquipmentSlot.entries) {
+            val skill = TierRecipes.recipe(slot, Tier.T1).skill
+            val affordableTier = Tier.entries.reversed().firstOrNull { tier ->
+                progression.canPerformTier(skill, tier) &&
+                    TierRecipes.recipe(slot, tier).materials.all { cost ->
+                        (inventory[materialDisplayName(cost.itemId)] ?: 0) >= cost.quantity
+                    }
+            }
+            if (affordableTier != null) {
+                val result = craftEquipment(slot, affordableTier)
+                if (result.startsWith("Aldren fabrica")) return result
+            }
+        }
+
+        // Tool recipe is separate from combat equipment and requires its own materials.
+        if ((inventory["Prancha T1"] ?: 0) >= 1 && (inventory["Fibra T1"] ?: 0) >= 1 &&
+            (inventory["Vara de Pesca T1"] ?: 0) <= 0) {
+            inventory.removeItem("Prancha T1", 1)
+            inventory.removeItem("Fibra T1", 1)
+            inventory.addItem("Vara de Pesca T1", 1)
+            skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
+            progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
+            return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
+        }
+        return "Aldren compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais ou a receita ainda não foi liberada."
     }
     fun step(): String {
         if (isComplete) {
