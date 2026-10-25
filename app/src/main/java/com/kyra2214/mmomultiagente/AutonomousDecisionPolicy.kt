@@ -50,9 +50,17 @@ object AutonomousDecisionPolicy {
                 }
                 raw?.let { "$it ${tier.name}" }
             }
-            if (requiredRaw.any { has(it) } || refiningInputs.any { (raw, skill) ->
-                    Tier.entries.any { rawTier -> has("$raw ${rawTier.name}") && progression.canPerformTier(skill, rawTier) }
-                }) return AutonomousAction.REFINE
+            val anyRefinableRaw = listOf(
+                "Minério" to SkillId.ORE_REFINING,
+                "Pedra" to SkillId.STONE_REFINING,
+                "Madeira" to SkillId.WOOD_REFINING,
+                "Fibra" to SkillId.FIBER_REFINING,
+                "Couro" to SkillId.LEATHER_REFINING,
+                "Fragmento Arcano" to SkillId.ARCANE_REFINING
+            ).any { (raw, skill) ->
+                Tier.entries.any { rawTier -> has("$raw ${rawTier.name}") && progression.canPerformTier(skill, rawTier) }
+            }
+            if (requiredRaw.any { has(it) } || anyRefinableRaw) return AutonomousAction.REFINE
             return AutonomousAction.GATHER
         }
 
