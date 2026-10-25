@@ -167,6 +167,9 @@ class LongRunSimulationTest {
             engine.equippedGear.isNotEmpty())
         assertTrue(engine.inventory.values.all { it > 0 })
         assertTrue(engine.log.size <= 120)
+        if (engine.dungeonAttempts == 0) {
+            println("LONG_RUN_DIAGNOSTIC gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}; lastLogs=${engine.log.takeLast(20)}")
+        }
         assertTrue("Agent never reached T3 dungeon gate. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
             engine.dungeonAttempts > 0)
         assertTrue(EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T3.rank })
