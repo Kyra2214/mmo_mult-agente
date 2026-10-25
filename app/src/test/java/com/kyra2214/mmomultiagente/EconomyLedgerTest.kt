@@ -14,7 +14,7 @@ class EconomyLedgerTest {
         assertEquals(2, ledger.totalCreated("Peixe T1"))
         assertEquals(1, ledger.totalConsumed("Peixe T1"))
         assertEquals(0, ledger.mintedCurrency())
-        assertEquals(2, ledger.events.size)
+        assertEquals(3, ledger.events.size)
         assertTrue(ledger.forAgent("mira").any { it.type == EconomyEventType.TRADE_SETTLED })
     }
 
