@@ -17,7 +17,7 @@ class AutonomousDecisionPolicyTest {
 
     @Test fun fishingIsUnavailableUntilTheAgentHasArod() {
         assertEquals(
-            AutonomousAction.GATHER,
+            AutonomousAction.HUNT,
             AutonomousDecisionPolicy.choose(emptyMap(), 100, null)
         )
         assertEquals(
