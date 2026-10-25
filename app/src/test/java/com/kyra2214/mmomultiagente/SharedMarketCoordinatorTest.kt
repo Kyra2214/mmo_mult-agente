@@ -25,8 +25,10 @@ class SharedMarketCoordinatorTest {
         val events = SharedMarketCoordinator().tick(participants, ledger)
 
         assertEquals(1, events.size)
-        assertEquals(2, ledger.events.size)
-        assertTrue(ledger.events.all { it.type == EconomyEventType.TRADE_SETTLED })
+        assertEquals(3, ledger.events.size)
+        assertEquals(2, ledger.events.count { it.type == EconomyEventType.TRADE_SETTLED })
+        assertEquals(1, ledger.events.count { it.type == EconomyEventType.ITEM_TRANSFERRED })
+        assertTrue(ledger.events.any { it.cause == "market-escrow-to-buyer" && it.counterpartyId == "buyer" })
         assertEquals(45, seller.silver)
         assertEquals(15, buyer.silver)
         assertEquals(1, buyer.inventory["Peixe T1"])
