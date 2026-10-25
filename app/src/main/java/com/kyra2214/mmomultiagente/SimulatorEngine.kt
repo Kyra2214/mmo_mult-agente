@@ -303,7 +303,7 @@ class SimulatorEngine(
         }
         val itemName = equipmentName(slot, tier)
         inventory.addItem(itemName, 1)
-        recordEconomy(EconomyEventType.RESOURCE_CREATED, itemName, 1, "crafting)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, itemName, 1, "crafting")
         val countKey = when (slot) {
             EquipmentSlot.ARMOR -> "armaduras"
             EquipmentSlot.HELMET -> "capacetes"
