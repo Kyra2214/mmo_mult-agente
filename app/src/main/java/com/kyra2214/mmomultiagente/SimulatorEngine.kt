@@ -131,7 +131,9 @@ class SimulatorEngine(
     }
 
     private fun huntForHide(): String {
-        val tier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
+        val targetTier = equipmentTargetTier()
+        val unlockedTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
+        val tier = Tier.fromRank(minOf(targetTier.rank, unlockedTier.rank))
         inventory.addItem("Couro ${tier.name}", 1)
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
