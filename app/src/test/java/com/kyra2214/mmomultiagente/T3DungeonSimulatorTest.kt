@@ -30,6 +30,14 @@ class T3DungeonSimulatorTest {
         assertTrue(result.playerHpRemaining > 0)
     }
 
+    @Test fun agentCanWithdrawSafelyAfterRepeatedFailedAttacks() {
+        val result = T3DungeonSimulator.runWithRolls(fullT3Gear, List(200) { 1 }, d4Roll = 4)
+        assertEquals(DungeonOutcome.WITHDRAWN, result.outcome)
+        assertNull(result.chest)
+        assertTrue(result.playerHpRemaining > 0)
+        assertTrue(result.encounters.isNotEmpty())
+    }
+
     @Test fun failedCombatDoesNotGrantDungeonChest() {
         val rolls = List(200) { index -> if (index % 2 == 0) 1 else 20 }
         val result = T3DungeonSimulator.runWithRolls(fullT3Gear, rolls, d4Roll = 4, initialHealth = 1)
