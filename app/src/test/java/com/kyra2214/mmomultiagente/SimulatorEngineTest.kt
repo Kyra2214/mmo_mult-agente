@@ -25,6 +25,7 @@ class SimulatorEngineTest {
         val engine = SimulatorEngine()
         repeat(14) { engine.step() }
         assertEquals(1, engine.inventory["Armadura T1"])
+        assertEquals(2, engine.progression.snapshot(SkillId.ARMOR_CRAFTING).level)
         assertEquals(1, engine.inventory["Minério T1"])
         assertEquals(2, engine.inventory["Madeira T1"])
         assertEquals(1, engine.inventory["Couro T1"])
@@ -73,7 +74,7 @@ class AutonomousTickTest {
         repeat(SimulatorEngine.TOTAL_STAGES) { engine.step() }
         engine.tick()
         assertEquals(Tier.T1, engine.equippedGear[EquipmentSlot.ARMOR])
-        assertEquals(1, engine.skillCraftCounts["armaduras"])
+        assertEquals(2, engine.skillCraftCounts["armaduras"])
         assertFalse(engine.inventory.containsKey("Barra T1"))
         assertFalse(engine.inventory.containsKey("Couro Curtido T1"))
         assertFalse(engine.inventory.containsKey("Tecido T1"))
