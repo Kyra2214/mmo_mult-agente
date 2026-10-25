@@ -199,9 +199,15 @@ class SimulatorEngine(
             }
             val hasProcessed = (inventory[processedName] ?: 0) >= requiredProcessed
             if (!hasRaw && !hasProcessed) {
-                inventory.addItem(rawName, need.batchSize)
-                progression.recordSuccessfulAction(need.skill, tier)
-                gathered.add("${need.batchSize} $rawName")
+                val sourceAvailable = worldResourceStore?.harvest(rawName, need.batchSize) ?: (worldResourceStore == null)
+                if (sourceAvailable) {
+                    inventory.addItem(rawName, need.batchSize)
+                    recordEconomy(EconomyEventType.RESOURCE_CREATED, rawName, need.batchSize, "gathering")
+                    progression.recordSuccessfulAction(need.skill, tier)
+                    gathered.add("${need.batchSize} $rawName")
+                } else {
+                    gathered.add("fonte esgotada: $rawName")
+                }
             }
         }
         return if (gathered.isNotEmpty()) {
@@ -216,9 +222,14 @@ class SimulatorEngine(
         val unlockedTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
         val refiningTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.LEATHER_REFINING).level)
         val tier = Tier.fromRank(minOf(targetTier.rank, unlockedTier.rank, refiningTier.rank))
+        if (worldResourceStore != null && !worldResourceStore!!.harvest("Creature ${tier.name}", 1)) {
+            return "${agentName} procura uma criatura ${tier.name}, mas o estoque local está esgotado. Não recebe couro nem alzes."
+        }
         inventory.addItem("Couro ${tier.name}", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Couro ${tier.name}", 1, "hunt")
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
+        recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", 5, "hunt-reward")
         return "${agentName} caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
     }
 
@@ -227,7 +238,11 @@ class SimulatorEngine(
         if ((inventory["Vara de Pesca T1"] ?: 0) <= 0) {
             return "${agentName} avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
         }
+        if (worldResourceStore != null && !worldResourceStore!!.harvest("Peixe T1", 2)) {
+            return "${agentName} encontra o ponto de pesca sem estoque suficiente. Não recebe peixes."
+        }
         inventory.addItem("Peixe T1", 2)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Peixe T1", 2, "fishing")
         progression.recordSuccessfulAction(SkillId.FISHING, Tier.T1)
         return "${agentName} usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
     }
