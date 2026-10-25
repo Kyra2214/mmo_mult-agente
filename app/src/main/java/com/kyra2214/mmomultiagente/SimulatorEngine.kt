@@ -53,25 +53,62 @@ class SimulatorEngine(
             else -> "Tutorial concluído — vida autônoma desbloqueada"
         }
 
-    /** One unattended world tick. The tutorial runs automatically; afterward the agent keeps living. */
+    /** One unattended world tick. The tutorial runs automatically; afterward a policy chooses by needs. */
     fun tick(): String {
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
-        val message = when (autonomousActionIndex++ % 6) {
-            0 -> {
-                inventory.addItem("Minério T1", 2)
-                inventory.addItem("Madeira T1", 2)
-                inventory.addItem("Fibra T1", 1)
-                "Aldren avalia os estoques e coleta minério, madeira e fibra T1 porque os materiais básicos estão baixos."
-            }
-            1 -> { inventory.addItem("Couro T1", 1); silver += 5; "Aldren caça uma criatura T1 compatível; obtém 1 Couro T1 e 5 alzes." }
-            2 -> { inventory.addItem("Peixe T1", 2); "Aldren escolhe pescar por um período e obtém 2 Peixes T1. A pesca é uma atividade possível, não obrigatória." }
-            3 -> refineOneMaterial()
-            4 -> craftOneItem()
-            else -> if (marketListing == null && inventory.removeItem("Peixe T1", 1)) { marketListing = "Peixe T1"; "Aldren publica uma oferta de 1 Peixe T1. O peixe fica reservado; nenhum alze é recebido antes da venda." } else { "Aldren revisa inventário, saldo e objetivos e conserva recursos até surgir uma oportunidade melhor." }
+        val message = when (AutonomousDecisionPolicy.choose(inventory.toMap(), silver, marketListing)) {
+            AutonomousAction.GATHER -> gatherNeededMaterials()
+            AutonomousAction.HUNT -> huntForHide()
+            AutonomousAction.FISH -> fishIfUseful()
+            AutonomousAction.REFINE -> refineOneMaterial()
+            AutonomousAction.CRAFT -> craftOneItem()
+            AutonomousAction.TRADE -> listOrReviewMarket()
         }
+        autonomousActionIndex += 1
         addLog("Tick $worldTick — $message")
         return message
+    }
+
+    private fun gatherNeededMaterials(): String {
+        // Only gather materials the agent can currently use; avoid unbounded stockpiles.
+        val needsOre = (inventory["Minério T1"] ?: 0) < 2 && (inventory["Barra T1"] ?: 0) < 2
+        val needsWood = (inventory["Madeira T1"] ?: 0) < 1 && (inventory["Prancha T1"] ?: 0) < 1
+        val needsFiber = (inventory["Fibra T1"] ?: 0) < 1 && (inventory["Tecido T1"] ?: 0) < 1
+        if (needsOre) inventory.addItem("Minério T1", 2)
+        if (needsWood) inventory.addItem("Madeira T1", 1)
+        if (needsFiber) inventory.addItem("Fibra T1", 1)
+        return if (needsOre || needsWood || needsFiber) {
+            "Aldren consulta os estoques e coleta apenas o que falta para receitas conhecidas: " +
+                listOfNotNull(
+                    if (needsOre) "2 Minérios T1" else null,
+                    if (needsWood) "1 Madeira T1" else null,
+                    if (needsFiber) "1 Fibra T1" else null
+                ).joinToString(", ") + "."
+        } else "Aldren verifica as fontes próximas, mas não coleta: os materiais básicos já cobrem suas necessidades imediatas."
+    }
+
+    private fun huntForHide(): String {
+        inventory.addItem("Couro T1", 1)
+        silver += 5
+        return "Aldren caça uma criatura T1 compatível com seu preparo; obtém 1 Couro T1 e 5 alzes."
+    }
+
+    private fun fishIfUseful(): String {
+        // Fishing requires a rod. Without one, the agent must gather/refine/craft first.
+        if ((inventory["Vara de Pesca T1"] ?: 0) <= 0) {
+            return "Aldren avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
+        }
+        inventory.addItem("Peixe T1", 2)
+        return "Aldren usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
+    }
+
+    private fun listOrReviewMarket(): String {
+        if (marketListing == null && inventory.removeItem("Peixe T1", 1)) {
+            marketListing = "Peixe T1"
+            return "Aldren publica uma oferta de 1 Peixe T1. O peixe fica reservado; nenhum alze é recebido antes da venda."
+        }
+        return "Aldren revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
     }
 
     private fun refineOneMaterial(): String {
