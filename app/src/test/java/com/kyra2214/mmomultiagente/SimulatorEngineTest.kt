@@ -157,6 +157,21 @@ class TierAwareActivityTest {
 }
 
 
+class EquipmentWearPolicyTest {
+    @Test fun thirdUnrepairedDungeonDefeatPermanentlyBreaksEquippedGear() {
+        val gear = EquipmentSlot.entries.associateWith { Tier.T3 }
+        val engine = SimulatorEngine(stage = SimulatorEngine.TOTAL_STAGES, equippedGear = gear)
+        assertTrue(engine.recordDungeonDefeatWear().isEmpty())
+        assertTrue(engine.gearDamage.values.all { it == 1 })
+        assertTrue(engine.recordDungeonDefeatWear().isEmpty())
+        assertTrue(engine.gearDamage.values.all { it == 2 })
+        val broken = engine.recordDungeonDefeatWear()
+        assertEquals(EquipmentSlot.entries.size, broken.size)
+        assertTrue(engine.equippedGear.isEmpty())
+        assertTrue(engine.gearDamage.isEmpty())
+    }
+}
+
 class DungeonRepairPolicyTest {
     @Test fun agentPaysRepairNpcBeforeReenteringDungeon() {
         val gear = EquipmentSlot.entries.associateWith { Tier.T3 }
