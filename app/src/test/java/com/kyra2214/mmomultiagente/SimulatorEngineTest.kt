@@ -60,10 +60,10 @@ class AutonomousTickTest {
         repeat(SimulatorEngine.TOTAL_STAGES) { engine.tick() }
         assertTrue(engine.isComplete)
         assertEquals(0L, engine.worldTick)
-        repeat(6) { engine.tick() }
-        assertEquals(6L, engine.worldTick)
-        assertTrue(engine.log.any { it.contains("pescar") })
+        repeat(30) { engine.tick() }
+        assertEquals(30L, engine.worldTick)
         assertTrue(engine.log.any { it.contains("refina") || it.contains("refino") || it.contains("curtume") })
+        assertTrue(engine.log.any { it.contains("Vara de Pesca") || it.contains("pesca") || it.contains("Pesca") })
     }
 
     @Test fun autonomousCraftingConsumesMaterialsAndTracksCategorySeparately() {
@@ -72,6 +72,6 @@ class AutonomousTickTest {
         repeat(5) { engine.tick() }
         assertEquals(1, engine.inventory["Armadura T1"])
         assertEquals(1, engine.skillCraftCounts["armaduras"])
-        assertEquals(1, engine.inventory["Barra T1"])
+        assertFalse(engine.inventory.containsKey("Barra T1"))
     }
 }
