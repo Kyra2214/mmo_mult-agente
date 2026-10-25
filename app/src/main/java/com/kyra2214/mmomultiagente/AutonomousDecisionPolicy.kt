@@ -20,11 +20,17 @@ object AutonomousDecisionPolicy {
         }
 
         // Process raw materials when an appropriate refiner can add value.
+        val refiningInputs = listOf(
+            "Minério" to SkillId.ORE_REFINING,
+            "Pedra" to SkillId.STONE_REFINING,
+            "Madeira" to SkillId.WOOD_REFINING,
+            "Fibra" to SkillId.FIBER_REFINING,
+            "Couro" to SkillId.LEATHER_REFINING,
+            "Fragmento Arcano" to SkillId.ARCANE_REFINING
+        )
         val refinableRawMaterial = Tier.entries.reversed().any { tier ->
-            listOf("Minério", "Madeira", "Fibra", "Couro").any { raw ->
-                has("$raw ${tier.name}") && listOf(
-                    SkillId.ORE_REFINING, SkillId.WOOD_REFINING, SkillId.FIBER_REFINING, SkillId.LEATHER_REFINING
-                ).any { skill -> progression == null || progression.canPerformTier(skill, tier) }
+            refiningInputs.any { (raw, skill) ->
+                has("$raw ${tier.name}") && (progression == null || progression.canPerformTier(skill, tier))
             }
         }
         if (refinableRawMaterial) return AutonomousAction.REFINE
@@ -57,7 +63,9 @@ object AutonomousDecisionPolicy {
             canGatherTier && (
                 (!has("Barra ${tier.name}", 2) && !has("Minério ${tier.name}")) ||
                 (!has("Prancha ${tier.name}") && !has("Madeira ${tier.name}")) ||
-                (!has("Tecido ${tier.name}") && !has("Fibra ${tier.name}"))
+                (!has("Tecido ${tier.name}") && !has("Fibra ${tier.name}")) ||
+                (!has("Bloco de Pedra ${tier.name}") && !has("Pedra ${tier.name}")) ||
+                (!has("Componente Arcano ${tier.name}") && !has("Fragmento Arcano ${tier.name}"))
             )
         }
         if (lacksTieredResource) return AutonomousAction.GATHER
