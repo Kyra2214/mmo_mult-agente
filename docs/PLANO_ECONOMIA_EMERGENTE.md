@@ -1,7 +1,7 @@
 # Plano técnico — Economia emergente, habilidades e agentes autônomos
 
 **Projeto:** MMO Multiagente  
-**Status:** Fase A em andamento; auditoria inicial registrada. Coordenador experimental de mercado compartilhado adicionado, mas economia rastreável (B) e mercado transacional completo (C) seguem incompletos  
+**Status:** Fase A registrada; Fase B em implementação com estoques finitos, ledger persistente e cobertura econômica ampliada. Auditoria/reconciliação de todas as mutações ainda pendente; mercado compartilhado é experimental e a Fase C segue incompleta  
 **Referência conceitual:** ciclos de progressão e produção de Albion Online, adaptados ao simulador. Não reproduzir literalmente sua árvore de nós, conteúdo protegido ou balanceamento.
 
 ## 1. Objetivo
@@ -172,6 +172,9 @@ Preferir catálogos imutáveis carregados uma vez e estado mutável por agente/r
 **Aceite:** mapa dos modelos e fluxos existentes; riscos documentados; testes atuais identificados; nenhuma funcionalidade declarada pronta sem evidência.
 
 ### Fase B — Economia rastreável
+
+**Estado atual do código:** ledger tipado e persistido em preferências do servidor; eventos de abertura de saldo separados de emissão monetária; estoques compartilhados finitos; eventos instrumentados para coleta, caça, pesca, refino, fabricação, loot, teleporte, reparos e transferências entre inventário, baú, equipamento e escrow de mercado. Ainda não há prova de cobertura total nem reconciliação/replay entre ledger e todos os estados persistidos. CI deve validar o head atual antes de considerar esta fatia aceita.
+
 - Eliminar geração arbitrária de materiais.
 - Implementar fontes finitas e eventos de coleta, caça e pesca.
 - Definir receitas de múltiplos ingredientes.
