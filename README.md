@@ -120,7 +120,7 @@ Consulte **[docs/PLANO_INICIAL.md](docs/PLANO_INICIAL.md)** para fases, critéri
 
 A branch `feature/emergent-economy-multi-agent-ui` introduz um painel com três áreas: **Servidor** (resumo e agentes clicáveis), **Eventos** (linha do tempo agregada) e **Agentes** (lista e detalhe individual). Cada detalhe mostra estado, saldo, inventário, equipamento, oferta e log de ticks. O protótipo inicial mantém cinco perfis — Aldren, Mira, Borin, Kael e Sera — com persistência separada.
 
-**Limitação importante:** nesta etapa, os motores ainda executam instâncias separadas do simulador legado. O mercado compartilhado com compra/venda real entre esses agentes ainda precisa ser implementado nas fases B/C do plano de economia emergente. Portanto, os painéis permitem observar os ciclos individuais, mas não devem ser interpretados como evidência de comércio emergente multiagente.
+**Mercado compartilhado experimental:** os cinco perfis agora passam por um coordenador de mercado que pode liquidar ofertas entre agentes distintos, debitando o comprador e creditando o vendedor na mesma operação e transferindo o item ao comprador. A compra exige saldo suficiente e demanda básica observável; ofertas não são vendidas ao próprio vendedor. Ainda é uma primeira fatia funcional: cada agente só tem um slot de oferta, a demanda é limitada e a contabilidade causal completa/estoques naturais finitos ainda não foram concluídos. Não considerar a economia emergente completa até as fases B/C e seus critérios de aceite passarem.
 
 ## Estado atual
 
