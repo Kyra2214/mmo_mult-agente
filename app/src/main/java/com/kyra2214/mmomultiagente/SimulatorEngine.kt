@@ -21,7 +21,7 @@ class SimulatorEngine(
     val chest = chest.toMutableMap()
     val learnedNpcIds = learnedNpcIds.toMutableSet()
     val skillCraftCounts = skillCraftCounts.toMutableMap()
-    val progression = SkillProgression(progressionSnapshots)
+    var progression = SkillProgression(progressionSnapshots)
     val log = logEntries.toMutableList()
 
     data class Npc(val id: Int, val name: String, val explanation: String)
@@ -238,9 +238,7 @@ class SimulatorEngine(
         worldTick = 0L
         autonomousActionIndex = 0
         skillCraftCounts.clear()
-        progression.export().keys.forEach { skill ->
-            // Reset specialization state by rebuilding the in-memory progression below.
-        }
+        progression = SkillProgression()
         log.clear()
         log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
