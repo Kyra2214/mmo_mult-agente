@@ -29,7 +29,8 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tickIntervalMs = 2_000L
     private val sharedMarket = SharedMarketCoordinator()
-    private val economyLedger = EconomyLedger()
+    private lateinit var economyLedger: EconomyLedger
+    private lateinit var economyLedgerPreferences: android.content.SharedPreferences
     private lateinit var worldResourceStore: WorldResourceStore
     private lateinit var worldResourcePreferences: android.content.SharedPreferences
     private val runner = object : Runnable {
@@ -37,6 +38,7 @@ class MainActivity : Activity() {
             agents.forEach { agent -> agent.engine.tick() }
             sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) }, economyLedger)
             worldResourcePreferences.edit().putString("stocks", worldResourceStore.encode()).apply()
+            economyLedgerPreferences.edit().putString("events", economyLedger.encode()).apply()
             agents.forEach { agent ->
                 agent.engine.saveTo(agent.preferences)
                 agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
@@ -52,6 +54,8 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         worldResourcePreferences = getSharedPreferences("mmo_world_resources", MODE_PRIVATE)
         worldResourceStore = WorldResourceStore.decode(worldResourcePreferences.getString("stocks", "").orEmpty())
+        economyLedgerPreferences = getSharedPreferences("mmo_economy_ledger", MODE_PRIVATE)
+        economyLedger = EconomyLedger.decode(economyLedgerPreferences.getString("events", "").orEmpty())
         val profiles = listOf(
             Triple("aldren", "Aldren", "mmo_simulator"),
             Triple("mira", "Mira", "mmo_simulator_mira"),
