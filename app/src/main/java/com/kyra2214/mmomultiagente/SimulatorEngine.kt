@@ -12,6 +12,7 @@ class SimulatorEngine(
     var autonomousActionIndex: Int = 0,
     skillCraftCounts: Map<String, Int> = emptyMap(),
     progressionSnapshots: Map<SkillId, SkillSnapshot> = emptyMap(),
+    equippedGear: Map<EquipmentSlot, Tier> = emptyMap(),
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
@@ -22,6 +23,7 @@ class SimulatorEngine(
     val learnedNpcIds = learnedNpcIds.toMutableSet()
     val skillCraftCounts = skillCraftCounts.toMutableMap()
     var progression = SkillProgression(progressionSnapshots)
+    val equippedGear = equippedGear.toMutableMap()
     val log = logEntries.toMutableList()
 
     data class Npc(val id: Int, val name: String, val explanation: String)
@@ -140,6 +142,63 @@ class SimulatorEngine(
         return "Aldren realiza ${recipe.label}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
 
+    /**
+     * Craft one item from the tier recipe, requiring the matching specialization
+     * unlock and every listed material. No inventory changes happen on failure.
+     */
+    fun craftEquipment(slot: EquipmentSlot, tier: Tier): String {
+        val recipe = TierRecipes.recipe(slot, tier)
+        if (!progression.canPerformTier(recipe.skill, tier)) {
+            return "Fabricação bloqueada: a especialização ${recipe.skill} ainda não liberou ${tier.name} para ${slot.name}."
+        }
+        val localizedCosts = recipe.materials.map { cost -> cost to materialDisplayName(cost.itemId) }
+        val missing = localizedCosts.filter { (cost, item) -> (inventory[item] ?: 0) < cost.quantity }
+        if (missing.isNotEmpty()) {
+            return "Fabricação bloqueada: faltam " + missing.joinToString { (cost, item) ->
+                "${(cost.quantity - (inventory[item] ?: 0))}× $item"
+            } + ". Nenhum material foi consumido."
+        }
+
+        localizedCosts.forEach { (cost, item) -> inventory.removeItem(item, cost.quantity) }
+        val itemName = equipmentName(slot, tier)
+        inventory.addItem(itemName, 1)
+        val result = progression.recordSuccessfulAction(recipe.skill, tier)
+        val oldTier = equippedGear[slot]
+        if (oldTier == null || tier.rank > oldTier.rank) {
+            if (oldTier != null) inventory.addItem(equipmentName(slot, oldTier), 1)
+            inventory.removeItem(itemName, 1)
+            equippedGear[slot] = tier
+        }
+        return "Aldren fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
+    }
+
+    private fun materialDisplayName(itemId: String): String {
+        val parts = itemId.split("_T")
+        val tier = parts.getOrNull(1) ?: "1"
+        val name = when (parts.firstOrNull()) {
+            "METAL_BAR" -> "Barra"
+            "TANNED_LEATHER" -> "Couro Curtido"
+            "CLOTH" -> "Tecido"
+            "PLANK" -> "Prancha"
+            "ARCANE_COMPONENT" -> "Componente Arcano"
+            else -> itemId
+        }
+        return "$name T$tier"
+    }
+
+    private fun equipmentName(slot: EquipmentSlot, tier: Tier): String {
+        val name = when (slot) {
+            EquipmentSlot.ARMOR -> "Armadura"
+            EquipmentSlot.HELMET -> "Capacete"
+            EquipmentSlot.GLOVES -> "Luvas"
+            EquipmentSlot.BOOTS -> "Botas"
+            EquipmentSlot.WEAPON -> "Arma"
+            EquipmentSlot.OFF_HAND -> "Mão Secundária"
+            EquipmentSlot.MAGIC_ITEM -> "Item Mágico"
+        }
+        return "$name ${tier.name}"
+    }
+
     private fun craftOneItem(): String {
         val recipe = when {
             (inventory["Barra T1"] ?: 0) >= 2 && (inventory["Couro Curtido T1"] ?: 0) >= 1 && (inventory["Prancha T1"] ?: 0) >= 1 -> { inventory.removeItem("Barra T1", 2); inventory.removeItem("Couro Curtido T1", 1); inventory.removeItem("Prancha T1", 1); "Armadura T1" to "armaduras" }
@@ -239,6 +298,7 @@ class SimulatorEngine(
         autonomousActionIndex = 0
         skillCraftCounts.clear()
         progression = SkillProgression()
+        equippedGear.clear()
         log.clear()
         log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
@@ -258,6 +318,7 @@ class SimulatorEngine(
             .putString("skill_progression", progression.export().entries.joinToString(";") { (skill, state) ->
                 "${skill.name},${state.level},${state.actionsAtCurrentLevel},${state.totalSuccessfulActions}"
             })
+            .putString("equipped_gear", equippedGear.entries.joinToString(";") { (slot, tier) -> "${slot.name},${tier.name}" })
             .putString("log", log.joinToString("\u001e"))
             .apply()
     }
@@ -280,6 +341,14 @@ class SimulatorEngine(
                 worldTick = preferences.getLong("world_tick", 0L),
                 autonomousActionIndex = preferences.getInt("autonomous_action_index", 0),
                 skillCraftCounts = preferences.getString("skill_craft_counts", "").orEmpty().decodeInventory(),
+                equippedGear = preferences.getString("equipped_gear", "").orEmpty().split(";").mapNotNull { entry ->
+                    val parts = entry.split(",")
+                    if (parts.size != 2) null else {
+                        val slot = runCatching { EquipmentSlot.valueOf(parts[0]) }.getOrNull()
+                        val tier = runCatching { Tier.valueOf(parts[1]) }.getOrNull()
+                        if (slot == null || tier == null) null else slot to tier
+                    }
+                }.toMap(),
                 progressionSnapshots = preferences.getString("skill_progression", "").orEmpty().split(";").mapNotNull { entry ->
                     val parts = entry.split(",")
                     if (parts.size != 4) null else {
