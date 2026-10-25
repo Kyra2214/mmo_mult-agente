@@ -20,10 +20,13 @@ class SharedMarketCoordinatorTest {
             MarketParticipant("seller", "Aldren", seller),
             MarketParticipant("buyer", "Mira", buyer)
         )
+        val ledger = EconomyLedger()
 
-        val events = SharedMarketCoordinator().tick(participants)
+        val events = SharedMarketCoordinator().tick(participants, ledger)
 
         assertEquals(1, events.size)
+        assertEquals(2, ledger.events.size)
+        assertTrue(ledger.events.all { it.type == EconomyEventType.TRADE_SETTLED })
         assertEquals(45, seller.silver)
         assertEquals(15, buyer.silver)
         assertEquals(1, buyer.inventory["Peixe T1"])
