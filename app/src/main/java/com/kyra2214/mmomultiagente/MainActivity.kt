@@ -68,26 +68,24 @@ class MainActivity : Activity() {
             val engine = SimulatorEngine.loadFrom(prefs, name, legacyMarketBuyerEnabled = false)
             engine.worldResourceStore = worldResourceStore
             engine.economyEventSink = economyLedger::record
-            catchUpWhileClosed(engine, prefs)
-            AgentRuntime(id, name, engine, prefs)
-        }
-        agents.forEach { agent ->
             val marker = "economy_opening_balance_recorded"
-            if (!agent.preferences.getBoolean(marker, false)) {
-                if (agent.engine.silver > 0) {
+            if (!prefs.getBoolean(marker, false)) {
+                if (engine.silver > 0) {
                     economyLedger.record(
                         EconomyEvent(
-                            agentId = agent.id,
-                            tick = agent.engine.worldTick,
+                            agentId = id,
+                            tick = engine.worldTick,
                             type = EconomyEventType.CURRENCY_INITIALIZED,
                             itemId = "alzes",
-                            quantity = agent.engine.silver,
+                            quantity = engine.silver,
                             cause = "ledger-opening-balance-baseline"
                         )
                     )
                 }
-                agent.preferences.edit().putBoolean(marker, true).apply()
+                prefs.edit().putBoolean(marker, true).apply()
             }
+            catchUpWhileClosed(engine, prefs)
+            AgentRuntime(id, name, engine, prefs)
         }
         economyLedgerPreferences.edit().putString("events", economyLedger.encode()).apply()
         buildInterface()
