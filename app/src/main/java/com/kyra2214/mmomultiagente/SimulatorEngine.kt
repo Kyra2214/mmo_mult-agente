@@ -292,6 +292,8 @@ class SimulatorEngine(
             if (oldTier != null) inventory.addItem(equipmentName(slot, oldTier), 1)
             inventory.removeItem(itemName, 1)
             equippedGear[slot] = tier
+            // New equipment starts intact; wear belongs to the replaced piece.
+            gearDamage.remove(slot)
         }
         return "Aldren fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
     }
