@@ -18,6 +18,7 @@ class SimulatorEngine(
     var dungeonCompleted: Boolean = false,
     var dungeonAttempts: Int = 0,
     var health: Int = 100,
+    gearDamage: Map<EquipmentSlot, Int> = emptyMap(),
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
@@ -29,6 +30,7 @@ class SimulatorEngine(
     val skillCraftCounts = skillCraftCounts.toMutableMap()
     var progression = SkillProgression(progressionSnapshots)
     val equippedGear = equippedGear.toMutableMap()
+    val gearDamage = gearDamage.toMutableMap()
     val log = logEntries.toMutableList()
 
     data class Npc(val id: Int, val name: String, val explanation: String)
