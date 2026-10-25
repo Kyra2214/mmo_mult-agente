@@ -77,3 +77,46 @@ class AutonomousTickTest {
         assertFalse(engine.inventory.containsKey("Barra T1"))
     }
 }
+
+
+class TierRecipeIntegrationTest {
+    @Test fun craftingTierOneEquipmentConsumesRecipeAndEquipsIt() {
+        val engine = SimulatorEngine(inventory = mapOf(
+            "Barra T1" to 2,
+            "Couro Curtido T1" to 2,
+            "Tecido T1" to 1
+        ))
+        val result = engine.craftEquipment(EquipmentSlot.ARMOR, Tier.T1)
+        assertTrue(result.contains("fabrica"))
+        assertEquals(Tier.T1, engine.equippedGear[EquipmentSlot.ARMOR])
+        assertFalse(engine.inventory.containsKey("Barra T1"))
+        assertFalse(engine.inventory.containsKey("Couro Curtido T1"))
+        assertFalse(engine.inventory.containsKey("Tecido T1"))
+        assertEquals(2, engine.progression.snapshot(SkillId.ARMOR_CRAFTING).level)
+    }
+
+    @Test fun lockedTierRecipeDoesNotConsumeAnyMaterials() {
+        val engine = SimulatorEngine(inventory = mapOf(
+            "Barra T3" to 20,
+            "Couro Curtido T3" to 20,
+            "Tecido T3" to 20
+        ))
+        val before = engine.inventory.toMap()
+        val result = engine.craftEquipment(EquipmentSlot.ARMOR, Tier.T3)
+        assertTrue(result.contains("bloqueada"))
+        assertEquals(before, engine.inventory)
+        assertTrue(engine.equippedGear.isEmpty())
+    }
+
+    @Test fun insufficientRecipeMaterialsAreNotPartiallyConsumed() {
+        val engine = SimulatorEngine(inventory = mapOf(
+            "Barra T1" to 2,
+            "Couro Curtido T1" to 1,
+            "Tecido T1" to 1
+        ))
+        val before = engine.inventory.toMap()
+        val result = engine.craftEquipment(EquipmentSlot.ARMOR, Tier.T1)
+        assertTrue(result.contains("faltam"))
+        assertEquals(before, engine.inventory)
+    }
+}
