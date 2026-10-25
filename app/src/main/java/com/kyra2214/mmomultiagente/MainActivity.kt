@@ -28,10 +28,12 @@ class MainActivity : Activity() {
     private var selectedAgentId: String = "aldren"
     private val handler = Handler(Looper.getMainLooper())
     private val tickIntervalMs = 2_000L
+    private val sharedMarket = SharedMarketCoordinator()
     private val runner = object : Runnable {
         override fun run() {
+            agents.forEach { agent -> agent.engine.tick() }
+            sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) })
             agents.forEach { agent ->
-                agent.engine.tick()
                 agent.engine.saveTo(agent.preferences)
                 agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
             }
@@ -53,7 +55,7 @@ class MainActivity : Activity() {
         )
         agents = profiles.map { (id, name, preferenceName) ->
             val prefs = getSharedPreferences(preferenceName, MODE_PRIVATE)
-            val engine = SimulatorEngine.loadFrom(prefs, name)
+            val engine = SimulatorEngine.loadFrom(prefs, name, legacyMarketBuyerEnabled = false)
             catchUpWhileClosed(engine, prefs)
             AgentRuntime(id, name, engine, prefs)
         }
