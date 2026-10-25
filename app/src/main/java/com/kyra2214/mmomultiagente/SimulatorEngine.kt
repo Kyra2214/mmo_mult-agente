@@ -8,6 +8,9 @@ class SimulatorEngine(
     chest: Map<String, Int> = emptyMap(),
     learnedNpcIds: Set<Int> = emptySet(),
     var marketListing: String? = null,
+    var worldTick: Long = 0L,
+    var autonomousActionIndex: Int = 0,
+    skillCraftCounts: Map<String, Int> = emptyMap(),
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
@@ -16,6 +19,7 @@ class SimulatorEngine(
     val inventory = inventory.toMutableMap()
     val chest = chest.toMutableMap()
     val learnedNpcIds = learnedNpcIds.toMutableSet()
+    val skillCraftCounts = skillCraftCounts.toMutableMap()
     val log = logEntries.toMutableList()
 
     data class Npc(val id: Int, val name: String, val explanation: String)
@@ -49,6 +53,46 @@ class SimulatorEngine(
             else -> "Tutorial concluído — vida autônoma desbloqueada"
         }
 
+    /** One unattended world tick. The tutorial runs automatically; afterward the agent keeps living. */
+    fun tick(): String {
+        if (!isComplete) return step()
+        worldTick += 1
+        val message = when (autonomousActionIndex++ % 6) {
+            0 -> {
+                inventory.addItem("Minério T1", 2)
+                inventory.addItem("Madeira T1", 2)
+                inventory.addItem("Fibra T1", 1)
+                "Aldren avalia os estoques e coleta minério, madeira e fibra T1 porque os materiais básicos estão baixos."
+            }
+            1 -> { inventory.addItem("Couro T1", 1); silver += 5; "Aldren caça uma criatura T1 compatível; obtém 1 Couro T1 e 5 alzes." }
+            2 -> { inventory.addItem("Peixe T1", 2); "Aldren escolhe pescar por um período e obtém 2 Peixes T1. A pesca é uma atividade possível, não obrigatória." }
+            3 -> refineOneMaterial()
+            4 -> craftOneItem()
+            else -> if (marketListing == null && inventory.removeItem("Peixe T1", 1)) { marketListing = "Peixe T1"; "Aldren publica uma oferta de 1 Peixe T1. O peixe fica reservado; nenhum alze é recebido antes da venda." } else { "Aldren revisa inventário, saldo e objetivos e conserva recursos até surgir uma oportunidade melhor." }
+        }
+        addLog("Tick $worldTick — $message")
+        return message
+    }
+
+    private fun refineOneMaterial(): String {
+        val recipes = listOf(Triple("Minério T1", "Barra T1", "refino de minério"), Triple("Madeira T1", "Prancha T1", "refino de madeira"), Triple("Fibra T1", "Tecido T1", "refino de fibras"), Triple("Couro T1", "Couro Curtido T1", "curtume"))
+        val recipe = recipes.firstOrNull { (raw, _, _) -> (inventory[raw] ?: 0) > 0 }
+            ?: return "Aldren consulta os refinadores, mas não refina: faltam matérias-primas. Nenhum item foi criado."
+        inventory.removeItem(recipe.first, 1)
+        inventory.addItem(recipe.second, 1)
+        return "Aldren realiza ${recipe.third}: consome 1 ${recipe.first} e produz 1 ${recipe.second}."
+    }
+
+    private fun craftOneItem(): String {
+        val recipe = when {
+            (inventory["Barra T1"] ?: 0) >= 2 && (inventory["Couro Curtido T1"] ?: 0) >= 1 && (inventory["Prancha T1"] ?: 0) >= 1 -> { inventory.removeItem("Barra T1", 2); inventory.removeItem("Couro Curtido T1", 1); inventory.removeItem("Prancha T1", 1); "Armadura T1" to "armaduras" }
+            (inventory["Prancha T1"] ?: 0) >= 1 && (inventory["Fibra T1"] ?: 0) >= 1 -> { inventory.removeItem("Prancha T1", 1); inventory.removeItem("Fibra T1", 1); "Vara de Pesca T1" to "ferramentas" }
+            else -> null
+        } ?: return "Aldren compara receitas conhecidas, mas não fabrica: nenhuma receita disponível tem todos os materiais exigidos."
+        inventory.addItem(recipe.first, 1)
+        skillCraftCounts[recipe.second] = (skillCraftCounts[recipe.second] ?: 0) + 1
+        return "Aldren fabrica 1 ${recipe.first} consumindo os materiais da receita. Progresso de ${recipe.second}: ${skillCraftCounts[recipe.second]} item(ns)."
+    }
     fun step(): String {
         if (isComplete) {
             val message = "Tutorial concluído. Aldren agora pode escolher seus próprios objetivos."
@@ -132,6 +176,9 @@ class SimulatorEngine(
         chest.clear()
         learnedNpcIds.clear()
         marketListing = null
+        worldTick = 0L
+        autonomousActionIndex = 0
+        skillCraftCounts.clear()
         log.clear()
         log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
@@ -145,6 +192,9 @@ class SimulatorEngine(
             .putString("chest", chest.encode())
             .putString("learned_npcs", learnedNpcIds.sorted().joinToString(","))
             .putString("market_listing", marketListing)
+            .putLong("world_tick", worldTick)
+            .putInt("autonomous_action_index", autonomousActionIndex)
+            .putString("skill_craft_counts", skillCraftCounts.encode())
             .putString("log", log.joinToString("\u001e"))
             .apply()
     }
@@ -164,6 +214,9 @@ class SimulatorEngine(
                 chest = preferences.getString("chest", "").orEmpty().decodeInventory(),
                 learnedNpcIds = learned,
                 marketListing = preferences.getString("market_listing", null),
+                worldTick = preferences.getLong("world_tick", 0L),
+                autonomousActionIndex = preferences.getInt("autonomous_action_index", 0),
+                skillCraftCounts = preferences.getString("skill_craft_counts", "").orEmpty().decodeInventory(),
                 logEntries = savedLog ?: listOf(
                     "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
                     "Objetivo: conhecer a vila e aprender as mecânicas básicas."
