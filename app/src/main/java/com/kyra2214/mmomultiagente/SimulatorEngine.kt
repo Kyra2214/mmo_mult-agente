@@ -23,7 +23,8 @@ class SimulatorEngine(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
     ),
-    var agentName: String = "Aldren"
+    var agentName: String = "Aldren",
+    var legacyMarketBuyerEnabled: Boolean = true
 ) {
     val inventory = inventory.toMutableMap()
     val chest = chest.toMutableMap()
@@ -72,7 +73,7 @@ class SimulatorEngine(
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
         if (marketListing != null) marketListingAgeTicks += 1
-        resolveMarketBuyer()?.let { message ->
+        (if (legacyMarketBuyerEnabled) resolveMarketBuyer() else null)?.let { message ->
             addLog("Tick $worldTick — $message")
             return message
         }
@@ -521,7 +522,7 @@ class SimulatorEngine(
         const val TOTAL_STAGES = 19
         private const val MAX_LOG_ENTRIES = 120
 
-        fun loadFrom(preferences: android.content.SharedPreferences, agentName: String = "Aldren"): SimulatorEngine {
+        fun loadFrom(preferences: android.content.SharedPreferences, agentName: String = "Aldren", legacyMarketBuyerEnabled: Boolean = true): SimulatorEngine {
             val learned = preferences.getString("learned_npcs", "").orEmpty()
                 .split(",").mapNotNull { it.toIntOrNull() }.toSet()
             val savedLog = preferences.getString("log", null)?.split("\u001e")?.filter { it.isNotBlank() }
@@ -569,7 +570,8 @@ class SimulatorEngine(
                     "Dia 1 começou. ${agentName} recebeu a quest: Aprendendo a sobreviver.",
                     "Objetivo: conhecer a vila e aprender as mecânicas básicas."
                 ),
-                agentName = agentName
+                agentName = agentName,
+                legacyMarketBuyerEnabled = legacyMarketBuyerEnabled
             )
         }
 
