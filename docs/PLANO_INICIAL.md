@@ -1,10 +1,24 @@
 # Plano inicial de desenvolvimento
 
 **Projeto:** MMO Multiagente  
-**Estado:** planejamento inicial  
+**Estado:** protótipo Android 0.1.0 implementado; validação automatizada em andamento  
 **Objetivo:** provar que agentes autônomos conseguem aprender as mecânicas iniciais, agir num mundo persistente e participar de uma economia sem precisar de mapa gráfico.
 
 Este plano é incremental. Cada etapa precisa demonstrar comportamento correto e ter testes antes de aumentar a complexidade ou a população. Os números de agentes são metas de validação, não prazos nem promessas de desempenho.
+
+## Protótipo Android 0.1.0
+
+Já foram adicionados ao repositório o projeto Gradle/Kotlin, a interface Android textual, o núcleo determinístico da simulação, testes JVM e o workflow `.github/workflows/android.yml`.
+
+Funcionalidades presentes no protótipo:
+- avançar um passo ou dez passos do tutorial;
+- conversar com os 11 NPCs iniciais, incluindo apresentação de receitas T1/T2/T3 nos fabricantes;
+- obter materiais por coleta e caça, consumir materiais ao fabricar uma Armadura T1;
+- guardar um item no baú, publicar uma oferta que aguarda comprador e avaliar o custo do teleporte;
+- visualizar inventário, alzes, NPCs conhecidos, baú, oferta e log;
+- salvar o progresso localmente e reiniciar a simulação.
+
+**Limitação explícita:** a sequência atual é determinística e guiada por etapas. Ainda não é um planejador geral que escolhe livremente objetivos; compras entre agentes, economia emergente e execução contínua também não estão implementadas. A fase só deve ser considerada validada depois que o workflow de testes e build concluir com sucesso.
 
 ## Regras de execução
 
