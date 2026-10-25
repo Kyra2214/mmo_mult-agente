@@ -60,8 +60,8 @@ class AutonomousTickTest {
         repeat(SimulatorEngine.TOTAL_STAGES) { engine.tick() }
         assertTrue(engine.isComplete)
         assertEquals(0L, engine.worldTick)
-        repeat(30) { engine.tick() }
-        assertEquals(30L, engine.worldTick)
+        repeat(80) { engine.tick() }
+        assertEquals(80L, engine.worldTick)
         assertTrue(engine.log.any { it.contains("refina") || it.contains("refino") || it.contains("curtume") })
         assertTrue(engine.log.any { it.contains("Vara de Pesca") || it.contains("pesca") || it.contains("Pesca") })
         assertTrue(engine.progression.snapshot(SkillId.FISHING).totalSuccessfulActions > 0)
