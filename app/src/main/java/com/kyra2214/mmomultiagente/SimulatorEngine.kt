@@ -74,7 +74,7 @@ class SimulatorEngine(
         // Only gather materials the agent can currently use; avoid unbounded stockpiles.
         val needsOre = (inventory["Minério T1"] ?: 0) < 2 && (inventory["Barra T1"] ?: 0) < 2
         val needsWood = (inventory["Madeira T1"] ?: 0) < 1 && (inventory["Prancha T1"] ?: 0) < 1
-        val needsFiber = (inventory["Fibra T1"] ?: 0) < 1 && (inventory["Tecido T1"] ?: 0) < 1
+        val needsFiber = (inventory["Fibra T1"] ?: 0) < 1 && ((inventory["Tecido T1"] ?: 0) < 1 || (inventory["Vara de Pesca T1"] ?: 0) <= 0)
         if (needsOre) inventory.addItem("Minério T1", 2)
         if (needsWood) inventory.addItem("Madeira T1", 1)
         if (needsFiber) inventory.addItem("Fibra T1", 1)
@@ -112,7 +112,7 @@ class SimulatorEngine(
     }
 
     private fun refineOneMaterial(): String {
-        val recipes = listOf(Triple("Minério T1", "Barra T1", "refino de minério"), Triple("Madeira T1", "Prancha T1", "refino de madeira"), Triple("Fibra T1", "Tecido T1", "refino de fibras"), Triple("Couro T1", "Couro Curtido T1", "curtume"))
+        val recipes = listOf(Triple("Minério T1", "Barra T1", "refino de minério"), Triple("Madeira T1", "Prancha T1", "refino de madeira"), Triple("Couro T1", "Couro Curtido T1", "curtume"), Triple("Fibra T1", "Tecido T1", "refino de fibras"))
         val recipe = recipes.firstOrNull { (raw, _, _) -> (inventory[raw] ?: 0) > 0 }
             ?: return "Aldren consulta os refinadores, mas não refina: faltam matérias-primas. Nenhum item foi criado."
         inventory.removeItem(recipe.first, 1)
