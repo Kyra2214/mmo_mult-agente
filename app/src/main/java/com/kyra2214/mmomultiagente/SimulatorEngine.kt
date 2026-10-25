@@ -112,7 +112,15 @@ class SimulatorEngine(
         val targetTier = equipmentTargetTier()
         needs.forEach { need ->
             val skillTier = SkillProgression.highestUnlockedTier(progression.snapshot(need.skill).level)
-            val tier = Tier.fromRank(minOf(targetTier.rank, skillTier.rank))
+            val refiningSkill = when (need.raw) {
+                "Minério" -> SkillId.ORE_REFINING
+                "Pedra" -> SkillId.STONE_REFINING
+                "Madeira" -> SkillId.WOOD_REFINING
+                "Fibra" -> SkillId.FIBER_REFINING
+                else -> SkillId.ARCANE_REFINING
+            }
+            val refiningTier = SkillProgression.highestUnlockedTier(progression.snapshot(refiningSkill).level)
+            val tier = Tier.fromRank(minOf(targetTier.rank, skillTier.rank, refiningTier.rank))
             val rawName = "${need.raw} ${tier.name}"
             val processedName = "${need.processed} ${tier.name}"
             val hasRaw = (inventory[rawName] ?: 0) > 0
@@ -138,7 +146,8 @@ class SimulatorEngine(
     private fun huntForHide(): String {
         val targetTier = equipmentTargetTier()
         val unlockedTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
-        val tier = Tier.fromRank(minOf(targetTier.rank, unlockedTier.rank))
+        val refiningTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.LEATHER_REFINING).level)
+        val tier = Tier.fromRank(minOf(targetTier.rank, unlockedTier.rank, refiningTier.rank))
         inventory.addItem("Couro ${tier.name}", 1)
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
@@ -260,6 +269,8 @@ class SimulatorEngine(
                 progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).level
             }.thenBy { slot ->
                 progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).actionsAtCurrentLevel
+            }.thenBy { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).totalSuccessfulActions
             }
         )
         for (slot in orderedSlots) {
@@ -285,10 +296,7 @@ class SimulatorEngine(
     }
 
     private fun equipmentTargetTier(): Tier {
-        val craftingSkills = EquipmentSlot.entries.map { TierRecipes.recipe(it, Tier.T1).skill }
-        return Tier.fromRank(craftingSkills.minOf { skill ->
-            SkillProgression.highestUnlockedTier(progression.snapshot(skill).level).rank
-        })
+        return EquipmentProgressPlanner.targetTier(progression)
     }
 
     fun step(): String {
