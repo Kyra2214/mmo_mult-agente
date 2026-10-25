@@ -119,7 +119,7 @@ class MainActivity : Activity() {
             val progress = if (snapshot.level >= SkillProgression.MAX_LEVEL) "máx." else "${snapshot.actionsAtCurrentLevel}/${SkillProgression.actionsRequiredForNextLevel(snapshot.level)}"
             "${slot.name}: N${snapshot.level} ($progress)"
         }
-        val listing = engine.marketListing?.let { "Oferta: " + it + " (aguardando comprador)" } ?: "Sem ofertas publicadas"
+        val listing = engine.marketListing?.let { "Oferta: " + it + " por " + (engine.marketPrice ?: 0) + " alzes (reservada; aguardando comprador)" } ?: "Sem ofertas publicadas"
         stats.text = "Agente: Aldren   •   Dia: " + (1 + engine.worldTick / 720) + "   •   Tick: " + engine.worldTick + "\nHP: " + engine.health + "   •   Masmorra T3: " + (if (engine.dungeonCompleted) "concluída" else "tentativas " + engine.dungeonAttempts) + "\nAlzes: " + engine.silver +
             "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/11" +
             "\nEquipamento: " + gearText + "\nEspecializações: " + progressionText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
