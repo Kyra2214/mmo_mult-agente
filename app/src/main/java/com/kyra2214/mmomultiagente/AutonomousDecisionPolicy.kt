@@ -1,7 +1,7 @@
 package com.kyra2214.mmomultiagente
 
 /** Chooses one useful action from the agent's observed inventory and current opportunities. */
-enum class AutonomousAction { GATHER, HUNT, FISH, REFINE, CRAFT, TRADE }
+enum class AutonomousAction { GATHER, HUNT, FISH, REFINE, CRAFT, CRAFT_TOOL, TRADE }
 
 object EquipmentProgressPlanner {
     fun targetTier(progression: SkillProgression): Tier {
@@ -28,6 +28,10 @@ object AutonomousDecisionPolicy {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
         if (progression != null) {
+            if (!has("Vara de Pesca T1") && has("Prancha T1") && has("Tecido T1")) return AutonomousAction.CRAFT_TOOL
+            if (has("Vara de Pesca T1") && !has("Peixe T1") && marketListing != "Peixe T1") return AutonomousAction.FISH
+            if (has("Peixe T1") && marketListing == null) return AutonomousAction.TRADE
+
             val tier = EquipmentProgressPlanner.targetTier(progression)
             val slot = EquipmentProgressPlanner.prioritySlot(progression)
             val recipe = TierRecipes.recipe(slot, tier)
