@@ -72,6 +72,6 @@ class AutonomousTickTest {
         repeat(5) { engine.tick() }
         assertEquals(1, engine.inventory["Armadura T1"])
         assertEquals(1, engine.skillCraftCounts["armaduras"])
-        assertFalse(engine.inventory.containsKey("Barra T1"))
+        assertEquals(1, engine.inventory["Barra T1"])
     }
 }
