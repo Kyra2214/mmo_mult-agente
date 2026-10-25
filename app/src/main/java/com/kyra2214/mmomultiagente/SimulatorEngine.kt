@@ -55,7 +55,7 @@ class SimulatorEngine(
 
     /** One unattended world tick. The tutorial runs automatically; afterward the agent keeps living. */
     fun tick(): String {
-        if (!isComplete) return step()
+        if (stage < TOTAL_STAGES) return step()
         worldTick += 1
         val message = when (autonomousActionIndex++ % 6) {
             0 -> {
