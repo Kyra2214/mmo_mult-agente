@@ -163,6 +163,7 @@ class LongRunSimulationTest {
         repeat(500) { engine.tick() }
         assertEquals(500L, engine.worldTick)
         assertTrue(engine.progression.export().values.any { it.totalSuccessfulActions > 0 })
+        assertTrue("Agent should craft and equip at least one item in 500 ticks", engine.equippedGear.isNotEmpty())
         assertTrue(engine.inventory.values.all { it > 0 })
         assertTrue(engine.log.size <= 120)
         if (engine.dungeonCompleted) {
