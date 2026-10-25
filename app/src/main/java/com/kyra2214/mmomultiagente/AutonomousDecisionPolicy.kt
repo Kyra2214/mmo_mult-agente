@@ -8,7 +8,7 @@ object AutonomousDecisionPolicy {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
         // Complete a viable recipe before gathering more stock.
-        if (has("Barra T1", 2) && has("Couro Curtido T1") && has("Prancha T1")) {
+        if (has("Barra T1", 2) && has("Couro Curtido T1", 2) && has("Tecido T1")) {
             return AutonomousAction.CRAFT
         }
         if (has("Prancha T1") && has("Fibra T1") && !has("Vara de Pesca T1")) {
@@ -34,7 +34,7 @@ object AutonomousDecisionPolicy {
         val lacksFiber = !has("Fibra T1") && !has("Tecido T1")
         if (lacksMetal || lacksWood || lacksFiber) return AutonomousAction.GATHER
 
-        if (!has("Couro T1") && !has("Couro Curtido T1")) return AutonomousAction.HUNT
+        if ((inventory["Couro Curtido T1"] ?: 0) < 2 && !has("Couro T1")) return AutonomousAction.HUNT
         if (silver < 30) return AutonomousAction.HUNT
         return AutonomousAction.TRADE
     }
