@@ -38,6 +38,23 @@ class EconomyLedgerTest {
         assertEquals(3, restored.events.single().quantity)
     }
 
+    @Test fun openingBalanceAndItemTransfersDoNotCountAsMintingOrProduction() {
+        val ledger = EconomyLedger()
+        ledger.record(EconomyEvent(
+            agentId = "aldren", tick = 0, type = EconomyEventType.CURRENCY_INITIALIZED,
+            itemId = "alzes", quantity = 100, cause = "ledger-opening-balance-baseline"
+        ))
+        ledger.record(EconomyEvent(
+            agentId = "aldren", tick = 1, type = EconomyEventType.ITEM_TRANSFERRED,
+            itemId = "Armadura T1", quantity = 1, cause = "inventory-to-equipment:ARMOR"
+        ))
+
+        assertEquals(0, ledger.mintedCurrency())
+        assertEquals(0, ledger.burnedCurrency())
+        assertEquals(0, ledger.totalCreated("Armadura T1"))
+        assertEquals(0, ledger.totalConsumed("Armadura T1"))
+    }
+
     @Test fun rejectsInvalidEconomicEvents() {
         val badQuantity = runCatching {
             EconomyEvent(agentId = "mira", tick = 0, type = EconomyEventType.RESOURCE_CREATED, itemId = "Peixe T1", quantity = 0, cause = "test")
