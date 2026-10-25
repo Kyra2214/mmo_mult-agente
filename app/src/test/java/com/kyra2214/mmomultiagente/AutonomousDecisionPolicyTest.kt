@@ -44,7 +44,7 @@ class CoordinatedTierPlanningTest {
             marketListing = null,
             progression = progression
         )
-        assertEquals(AutonomousAction.GATHER, action)
+        assertEquals(AutonomousAction.HUNT, action)
     }
 
     @Test fun sharedTargetTierAdvancesWhenAllSevenCraftingSkillsUnlockT2() {
