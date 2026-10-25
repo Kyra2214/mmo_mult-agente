@@ -23,3 +23,14 @@
 3. Estoques do mundo devem ser finitos, compartilhados e atualizados de forma determinística.
 4. O ledger deve sobreviver a reinício e permitir conferir saldo/quantidades.
 5. Testes devem verificar conservação de itens e moeda em compra, fabricação, refino, recompensa, reparo e falha de ação.
+
+
+## Finite shared resource nodes added
+
+- `WorldResourceStore` holds finite shared stocks for T1-T3 gathering resources, creatures, and T1 fish.
+- Gathering, hunting, and fishing consume from this shared store before adding resources to an agent inventory.
+- A failed harvest does not partially reduce stock; depleted sources do not award items or hunting currency.
+- The UI persists the shared stock snapshot separately and displays remaining units and depleted source types.
+- Tests cover atomic harvest, exhausted sources, and restoring stock counts after serialization.
+
+This is still not a full closed economy: scripted tutorial starter materials/rewards are explicitly recorded as such, and some recipes and currency changes still need full coverage. Resource regeneration, location-specific nodes, and durable ledger history remain future work.
