@@ -24,11 +24,13 @@ class ProgressionRulesTest {
         assertEquals(0, progression.snapshot(SkillId.HELMET_CRAFTING).actionsAtCurrentLevel)
     }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun cheapTierOneCraftsCannotAdvanceLevelTwoToThree() {
+    @Test fun cheapTierOneCraftsCannotAdvanceLevelTwoToThree() {
         val progression = SkillProgression()
         progression.recordSuccessfulAction(SkillId.HELMET_CRAFTING, Tier.T1)
-        progression.recordSuccessfulAction(SkillId.HELMET_CRAFTING, Tier.T1)
+        repeat(5) { progression.recordSuccessfulAction(SkillId.HELMET_CRAFTING, Tier.T1) }
+        assertEquals(2, progression.snapshot(SkillId.HELMET_CRAFTING).level)
+        assertEquals(0, progression.snapshot(SkillId.HELMET_CRAFTING).actionsAtCurrentLevel)
+        assertEquals(6, progression.snapshot(SkillId.HELMET_CRAFTING).totalSuccessfulActions)
     }
 
     @Test fun everyEquipmentSlotHasARecipeForTiersOneThroughFour() {
