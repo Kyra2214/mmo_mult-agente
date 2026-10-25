@@ -112,7 +112,10 @@ class MainActivity : Activity() {
             else engine.inventory.entries.joinToString { it.value.toString() + "× " + it.key }
         val chestText = if (engine.chest.isEmpty()) "vazio"
             else engine.chest.entries.joinToString { it.value.toString() + "× " + it.key }
-        val gearText = if (engine.equippedGear.isEmpty()) "nenhum" else engine.equippedGear.entries.joinToString { (slot, tier) -> slot.name + ": " + tier.name }
+        val gearText = if (engine.equippedGear.isEmpty()) "nenhum" else engine.equippedGear.entries.joinToString { (slot, tier) ->
+            val wear = engine.gearDamage[slot] ?: 0
+            slot.name + ": " + tier.name + if (wear > 0) " (desgaste $wear/3)" else " (íntegro)"
+        }
         val progressionText = EquipmentSlot.entries.joinToString { slot ->
             val skill = TierRecipes.recipe(slot, Tier.T1).skill
             val snapshot = engine.progression.snapshot(skill)
