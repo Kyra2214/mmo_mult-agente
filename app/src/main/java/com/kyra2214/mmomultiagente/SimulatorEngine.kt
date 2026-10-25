@@ -48,6 +48,7 @@ class SimulatorEngine(
         Npc(10, "Baú e armazenamento", "Guarda itens fora do inventário carregado. Itens armazenados precisam ser retirados para fabricar."),
         Npc(11, "Masmorra", "Apresenta desafios, requisitos, riscos e recompensas. Entre apenas quando estiver preparado.")
     )
+    val repairNpc = Npc(12, "Mestre de Reparos", "Conserta equipamentos mediante pagamento em alzes. O agente deve visitar este NPC antes de acumular desgaste excessivo.")
 
     val isComplete: Boolean get() = stage >= TOTAL_STAGES
 
