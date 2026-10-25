@@ -30,10 +30,13 @@ class MainActivity : Activity() {
     private val tickIntervalMs = 2_000L
     private val sharedMarket = SharedMarketCoordinator()
     private val economyLedger = EconomyLedger()
+    private lateinit var worldResourceStore: WorldResourceStore
+    private lateinit var worldResourcePreferences: android.content.SharedPreferences
     private val runner = object : Runnable {
         override fun run() {
             agents.forEach { agent -> agent.engine.tick() }
             sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) }, economyLedger)
+            worldResourcePreferences.edit().putString("stocks", worldResourceStore.encode()).apply()
             agents.forEach { agent ->
                 agent.engine.saveTo(agent.preferences)
                 agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
@@ -47,6 +50,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        worldResourcePreferences = getSharedPreferences("mmo_world_resources", MODE_PRIVATE)
+        worldResourceStore = WorldResourceStore.decode(worldResourcePreferences.getString("stocks", "").orEmpty())
         val profiles = listOf(
             Triple("aldren", "Aldren", "mmo_simulator"),
             Triple("mira", "Mira", "mmo_simulator_mira"),
@@ -57,6 +62,8 @@ class MainActivity : Activity() {
         agents = profiles.map { (id, name, preferenceName) ->
             val prefs = getSharedPreferences(preferenceName, MODE_PRIVATE)
             val engine = SimulatorEngine.loadFrom(prefs, name, legacyMarketBuyerEnabled = false)
+            engine.worldResourceStore = worldResourceStore
+            engine.economyEventSink = economyLedger::record
             catchUpWhileClosed(engine, prefs)
             AgentRuntime(id, name, engine, prefs)
         }
