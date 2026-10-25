@@ -130,6 +130,7 @@ class TierAwareActivityTest {
     @Test fun gatheringDoesNotExceedTheSharedEquipmentTargetTier() {
         val engine = SimulatorEngine(
             stage = SimulatorEngine.TOTAL_STAGES,
+            inventory = mapOf("Couro Curtido T1" to 2),
             progressionSnapshots = mapOf(
                 SkillId.MINING to SkillSnapshot(level = 2, actionsAtCurrentLevel = 0, totalSuccessfulActions = 1)
             )
