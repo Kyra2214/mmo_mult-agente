@@ -33,3 +33,31 @@ class AutonomousDecisionPolicyTest {
         )
     }
 }
+
+
+class CoordinatedTierPlanningTest {
+    @Test fun agentDoesNotSkipToT2BeforeEveryEquipmentSkillUnlocksIt() {
+        val progression = SkillProgression()
+        val action = AutonomousDecisionPolicy.choose(
+            inventory = mapOf("Barra T2" to 10, "Couro Curtido T2" to 10, "Tecido T2" to 10),
+            silver = 100,
+            marketListing = null,
+            progression = progression
+        )
+        assertEquals(AutonomousAction.GATHER, action)
+    }
+
+    @Test fun sharedTargetTierAdvancesWhenAllSevenCraftingSkillsUnlockT2() {
+        val snapshots = EquipmentSlot.entries.associate { slot ->
+            TierRecipes.recipe(slot, Tier.T1).skill to SkillSnapshot(2, 0, 1)
+        }
+        val progression = SkillProgression(snapshots)
+        val action = AutonomousDecisionPolicy.choose(
+            inventory = mapOf("Barra T2" to 2, "Couro Curtido T2" to 2, "Tecido T2" to 1),
+            silver = 100,
+            marketListing = null,
+            progression = progression
+        )
+        assertEquals(AutonomousAction.CRAFT, action)
+    }
+}
