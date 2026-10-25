@@ -179,6 +179,9 @@ class LongRunSimulationTest {
         assertTrue("magic skill level=${engine.progression.snapshot(SkillId.MAGIC_ITEM_CRAFTING)}", engine.progression.snapshot(SkillId.MAGIC_ITEM_CRAFTING).level >= 3)
         assertTrue("Agent never reached T3 dungeon gate. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
             engine.dungeonAttempts > 0)
+        if (!EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T4.rank }) {
+            println("T4_DIAGNOSTIC gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}; lastLogs=${engine.log.takeLast(20)}")
+        }
         assertTrue("Agent did not reach full T4 equipment. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
             EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T4.rank })
         assertTrue(engine.progression.snapshot(SkillId.ARMOR_CRAFTING).level >= 4)
