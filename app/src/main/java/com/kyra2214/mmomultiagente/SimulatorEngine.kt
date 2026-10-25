@@ -480,6 +480,19 @@ class SimulatorEngine(
         return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. ${agentName} fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
     }
 
+    private fun recordEconomy(type: EconomyEventType, itemId: String, quantity: Int, cause: String) {
+        economyEventSink?.invoke(
+            EconomyEvent(
+                agentId = agentName.lowercase(),
+                tick = worldTick,
+                type = type,
+                itemId = itemId,
+                quantity = quantity,
+                cause = cause
+            )
+        )
+    }
+
     private fun addLog(message: String) {
         log.add(message)
         if (log.size > MAX_LOG_ENTRIES) log.removeAt(0)
