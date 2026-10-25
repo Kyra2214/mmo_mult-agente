@@ -338,7 +338,9 @@ class SimulatorEngine(
         }
         requirements.forEach { (item, amount) -> inventory.removeItem(item, amount) }
         inventory.addItem("Armadura T1", 1)
-        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. Aldren fabricou 1 Armadura T1."
+        skillCraftCounts["armaduras"] = (skillCraftCounts["armaduras"] ?: 0) + 1
+        progression.recordSuccessfulAction(SkillId.ARMOR_CRAFTING, Tier.T1)
+        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. Aldren fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
     }
 
     private fun addLog(message: String) {
