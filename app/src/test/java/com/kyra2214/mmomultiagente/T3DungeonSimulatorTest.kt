@@ -32,7 +32,7 @@ class T3DungeonSimulatorTest {
 
     @Test fun failedCombatDoesNotGrantDungeonChest() {
         val rolls = List(200) { index -> if (index % 2 == 0) 1 else 20 }
-        val result = T3DungeonSimulator.runWithRolls(fullT3Gear, rolls, d4Roll = 4)
+        val result = T3DungeonSimulator.runWithRolls(fullT3Gear, rolls, d4Roll = 4, initialHealth = 1)
         assertEquals(DungeonOutcome.DEFEATED, result.outcome)
         assertNull(result.chest)
         assertEquals(0, result.playerHpRemaining)
