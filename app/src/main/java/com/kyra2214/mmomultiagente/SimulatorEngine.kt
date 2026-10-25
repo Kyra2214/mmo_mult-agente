@@ -273,7 +273,9 @@ class SimulatorEngine(
             progression.canPerformTier(r.skill, r.tier) && (inventory[r.raw] ?: 0) > 0
         } ?: return "${agentName} consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
         inventory.removeItem(recipe.raw, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, recipe.raw, 1, "refining")
         inventory.addItem(recipe.output, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, recipe.output, 1, "refining")
         progression.recordSuccessfulAction(recipe.skill, recipe.tier)
         return "${agentName} realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
@@ -295,9 +297,13 @@ class SimulatorEngine(
             } + ". Nenhum material foi consumido."
         }
 
-        localizedCosts.forEach { (cost, item) -> inventory.removeItem(item, cost.quantity) }
+        localizedCosts.forEach { (cost, item) ->
+            inventory.removeItem(item, cost.quantity)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, item, cost.quantity, "crafting")
+        }
         val itemName = equipmentName(slot, tier)
         inventory.addItem(itemName, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, itemName, 1, "crafting)
         val countKey = when (slot) {
             EquipmentSlot.ARMOR -> "armaduras"
             EquipmentSlot.HELMET -> "capacetes"
@@ -421,11 +427,16 @@ class SimulatorEngine(
                 inventory.addItem("Minério T1", 3)
                 inventory.addItem("Madeira T1", 3)
                 inventory.addItem("Fibra T1", 2)
-                "Coleta concluída: +3 Minério T1, +3 Madeira T1 e +2 Fibra T1. Os recursos vieram de uma fonte disponível."
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Minério T1", 3, "tutorial-starter")
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Madeira T1", 3, "tutorial-starter")
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Fibra T1", 2, "tutorial-starter")
+                "Coleta concluída: +3 Minério T1, +3 Madeira T1 e +2 Fibra T1. Os recursos vieram do pacote inicial do tutorial."
             }
             13 -> {
                 inventory.addItem("Couro T1", 2)
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Couro T1", 2, "tutorial-reward")
                 silver += 10
+                recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", 10, "tutorial-reward")
                 "Caçada concluída: criatura T1 derrotada. ${agentName} recebeu 2 Couros T1 e 10 alzes como recompensa."
             }
             14 -> craftStarterArmor()
@@ -473,8 +484,12 @@ class SimulatorEngine(
                 (entry.value - (inventory[entry.key] ?: 0)).toString() + " " + entry.key
             } + ". O motor não criou o item."
         }
-        requirements.forEach { (item, amount) -> inventory.removeItem(item, amount) }
+        requirements.forEach { (item, amount) ->
+            inventory.removeItem(item, amount)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, item, amount, "tutorial-crafting")
+        }
         inventory.addItem("Armadura T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Armadura T1", 1, "tutorial-crafting")
         skillCraftCounts["armaduras"] = (skillCraftCounts["armaduras"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.ARMOR_CRAFTING, Tier.T1)
         return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. ${agentName} fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
