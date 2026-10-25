@@ -157,6 +157,36 @@ class TierAwareActivityTest {
 }
 
 
+class DungeonRepairPolicyTest {
+    @Test fun agentPaysRepairNpcBeforeReenteringDungeon() {
+        val gear = EquipmentSlot.entries.associateWith { Tier.T3 }
+        val engine = SimulatorEngine(
+            stage = SimulatorEngine.TOTAL_STAGES,
+            silver = 100,
+            equippedGear = gear,
+            gearDamage = mapOf(EquipmentSlot.ARMOR to 1)
+        )
+        val message = engine.tick()
+        assertTrue(message.contains("Mestre de Reparos"))
+        assertEquals(70, engine.silver)
+        assertEquals(0, engine.gearDamage[EquipmentSlot.ARMOR])
+        assertEquals(0, engine.dungeonAttempts)
+    }
+
+    @Test fun agentDoesNotReenterDungeonWhenItCannotAffordRepairs() {
+        val gear = EquipmentSlot.entries.associateWith { Tier.T3 }
+        val engine = SimulatorEngine(
+            stage = SimulatorEngine.TOTAL_STAGES,
+            silver = 0,
+            equippedGear = gear,
+            gearDamage = mapOf(EquipmentSlot.ARMOR to 1)
+        )
+        engine.tick()
+        assertEquals(0, engine.dungeonAttempts)
+        assertEquals(1, engine.gearDamage[EquipmentSlot.ARMOR])
+    }
+}
+
 class LongRunSimulationTest {
     @Test fun unattendedAgentReachesTheT3DungeonGateAndKeepsRunning() {
         val engine = SimulatorEngine(stage = SimulatorEngine.TOTAL_STAGES)
