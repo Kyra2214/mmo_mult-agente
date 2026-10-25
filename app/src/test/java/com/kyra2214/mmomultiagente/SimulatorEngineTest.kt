@@ -122,3 +122,32 @@ class TierRecipeIntegrationTest {
         assertEquals(before, engine.inventory)
     }
 }
+
+
+class TierAwareActivityTest {
+    @Test fun gatheringUsesTheHighestUnlockedTierForEachSpecialization() {
+        val engine = SimulatorEngine(
+            stage = SimulatorEngine.TOTAL_STAGES,
+            progressionSnapshots = mapOf(
+                SkillId.MINING to SkillSnapshot(level = 2, actionsAtCurrentLevel = 0, totalSuccessfulActions = 1)
+            )
+        )
+        engine.tick()
+        assertTrue((engine.inventory["Minério T2"] ?: 0) > 0)
+        assertTrue((engine.inventory["Madeira T1"] ?: 0) > 0)
+        assertEquals(1, engine.progression.snapshot(SkillId.MINING).level)
+    }
+
+    @Test fun refiningConsumesRawMaterialAndPreservesItsTier() {
+        val engine = SimulatorEngine(
+            stage = SimulatorEngine.TOTAL_STAGES,
+            inventory = mapOf("Minério T2" to 1),
+            progressionSnapshots = mapOf(
+                SkillId.ORE_REFINING to SkillSnapshot(level = 2, actionsAtCurrentLevel = 0, totalSuccessfulActions = 1)
+            )
+        )
+        engine.tick()
+        assertEquals(1, engine.inventory["Barra T2"])
+        assertFalse(engine.inventory.containsKey("Minério T2"))
+    }
+}
