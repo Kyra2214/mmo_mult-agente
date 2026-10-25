@@ -11,6 +11,7 @@ class SimulatorEngine(
     var worldTick: Long = 0L,
     var autonomousActionIndex: Int = 0,
     skillCraftCounts: Map<String, Int> = emptyMap(),
+    progressionSnapshots: Map<SkillId, SkillSnapshot> = emptyMap(),
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
@@ -20,6 +21,7 @@ class SimulatorEngine(
     val chest = chest.toMutableMap()
     val learnedNpcIds = learnedNpcIds.toMutableSet()
     val skillCraftCounts = skillCraftCounts.toMutableMap()
+    val progression = SkillProgression(progressionSnapshots)
     val log = logEntries.toMutableList()
 
     data class Npc(val id: Int, val name: String, val explanation: String)
@@ -75,9 +77,18 @@ class SimulatorEngine(
         val needsOre = (inventory["Minério T1"] ?: 0) < 2 && (inventory["Barra T1"] ?: 0) < 2
         val needsWood = (inventory["Madeira T1"] ?: 0) < 1 && (inventory["Prancha T1"] ?: 0) < 1
         val needsFiber = (inventory["Fibra T1"] ?: 0) < 1 && ((inventory["Tecido T1"] ?: 0) < 1 || (inventory["Vara de Pesca T1"] ?: 0) <= 0)
-        if (needsOre) inventory.addItem("Minério T1", 2)
-        if (needsWood) inventory.addItem("Madeira T1", 1)
-        if (needsFiber) inventory.addItem("Fibra T1", 1)
+        if (needsOre) {
+            inventory.addItem("Minério T1", 2)
+            progression.recordSuccessfulAction(SkillId.MINING, Tier.T1)
+        }
+        if (needsWood) {
+            inventory.addItem("Madeira T1", 1)
+            progression.recordSuccessfulAction(SkillId.WOODCUTTING, Tier.T1)
+        }
+        if (needsFiber) {
+            inventory.addItem("Fibra T1", 1)
+            progression.recordSuccessfulAction(SkillId.FIBER_GATHERING, Tier.T1)
+        }
         return if (needsOre || needsWood || needsFiber) {
             "Aldren consulta os estoques e coleta apenas o que falta para receitas conhecidas: " +
                 listOfNotNull(
@@ -90,6 +101,7 @@ class SimulatorEngine(
 
     private fun huntForHide(): String {
         inventory.addItem("Couro T1", 1)
+        progression.recordSuccessfulAction(SkillId.SKINNING, Tier.T1)
         silver += 5
         return "Aldren caça uma criatura T1 compatível com seu preparo; obtém 1 Couro T1 e 5 alzes."
     }
@@ -100,6 +112,7 @@ class SimulatorEngine(
             return "Aldren avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
         }
         inventory.addItem("Peixe T1", 2)
+        progression.recordSuccessfulAction(SkillId.FISHING, Tier.T1)
         return "Aldren usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
     }
 
@@ -112,12 +125,19 @@ class SimulatorEngine(
     }
 
     private fun refineOneMaterial(): String {
-        val recipes = listOf(Triple("Minério T1", "Barra T1", "refino de minério"), Triple("Madeira T1", "Prancha T1", "refino de madeira"), Triple("Couro T1", "Couro Curtido T1", "curtume"), Triple("Fibra T1", "Tecido T1", "refino de fibras"))
-        val recipe = recipes.firstOrNull { (raw, _, _) -> (inventory[raw] ?: 0) > 0 }
+        data class RefiningRecipe(val raw: String, val output: String, val label: String, val skill: SkillId)
+        val recipes = listOf(
+            RefiningRecipe("Minério T1", "Barra T1", "refino de minério", SkillId.ORE_REFINING),
+            RefiningRecipe("Madeira T1", "Prancha T1", "refino de madeira", SkillId.WOOD_REFINING),
+            RefiningRecipe("Couro T1", "Couro Curtido T1", "curtume", SkillId.LEATHER_REFINING),
+            RefiningRecipe("Fibra T1", "Tecido T1", "refino de fibras", SkillId.FIBER_REFINING)
+        )
+        val recipe = recipes.firstOrNull { (inventory[it.raw] ?: 0) > 0 }
             ?: return "Aldren consulta os refinadores, mas não refina: faltam matérias-primas. Nenhum item foi criado."
-        inventory.removeItem(recipe.first, 1)
-        inventory.addItem(recipe.second, 1)
-        return "Aldren realiza ${recipe.third}: consome 1 ${recipe.first} e produz 1 ${recipe.second}."
+        inventory.removeItem(recipe.raw, 1)
+        inventory.addItem(recipe.output, 1)
+        progression.recordSuccessfulAction(recipe.skill, Tier.T1)
+        return "Aldren realiza ${recipe.label}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
 
     private fun craftOneItem(): String {
@@ -128,6 +148,8 @@ class SimulatorEngine(
         } ?: return "Aldren compara receitas conhecidas, mas não fabrica: nenhuma receita disponível tem todos os materiais exigidos."
         inventory.addItem(recipe.first, 1)
         skillCraftCounts[recipe.second] = (skillCraftCounts[recipe.second] ?: 0) + 1
+        val skill = if (recipe.second == "armaduras") SkillId.ARMOR_CRAFTING else SkillId.TOOL_CRAFTING
+        progression.recordSuccessfulAction(skill, Tier.T1)
         return "Aldren fabrica 1 ${recipe.first} consumindo os materiais da receita. Progresso de ${recipe.second}: ${skillCraftCounts[recipe.second]} item(ns)."
     }
     fun step(): String {
@@ -216,6 +238,9 @@ class SimulatorEngine(
         worldTick = 0L
         autonomousActionIndex = 0
         skillCraftCounts.clear()
+        progression.export().keys.forEach { skill ->
+            // Reset specialization state by rebuilding the in-memory progression below.
+        }
         log.clear()
         log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
@@ -232,6 +257,9 @@ class SimulatorEngine(
             .putLong("world_tick", worldTick)
             .putInt("autonomous_action_index", autonomousActionIndex)
             .putString("skill_craft_counts", skillCraftCounts.encode())
+            .putString("skill_progression", progression.export().entries.joinToString(";") { (skill, state) ->
+                "${skill.name},${state.level},${state.actionsAtCurrentLevel},${state.totalSuccessfulActions}"
+            })
             .putString("log", log.joinToString("\u001e"))
             .apply()
     }
@@ -254,6 +282,17 @@ class SimulatorEngine(
                 worldTick = preferences.getLong("world_tick", 0L),
                 autonomousActionIndex = preferences.getInt("autonomous_action_index", 0),
                 skillCraftCounts = preferences.getString("skill_craft_counts", "").orEmpty().decodeInventory(),
+                progressionSnapshots = preferences.getString("skill_progression", "").orEmpty().split(";").mapNotNull { entry ->
+                    val parts = entry.split(",")
+                    if (parts.size != 4) null else {
+                        val skill = runCatching { SkillId.valueOf(parts[0]) }.getOrNull()
+                        val level = parts[1].toIntOrNull()
+                        val count = parts[2].toIntOrNull()
+                        val total = parts[3].toIntOrNull()
+                        if (skill == null || level == null || count == null || total == null) null
+                        else skill to SkillSnapshot(level, count, total)
+                    }
+                }.toMap(),
                 logEntries = savedLog ?: listOf(
                     "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
                     "Objetivo: conhecer a vila e aprender as mecânicas básicas."
