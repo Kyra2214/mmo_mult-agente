@@ -35,6 +35,10 @@ class SimulatorEngine(
     val gearDamage = gearDamage.toMutableMap()
     val log = logEntries.toMutableList().apply { indices.forEach { i -> this[i] = this[i].replace("Aldren", agentName) } }
 
+    // Injected by the server host so all agents share finite world stocks and emit events.
+    var worldResourceStore: WorldResourceStore? = null
+    var economyEventSink: ((EconomyEvent) -> Unit)? = null
+
     data class Npc(val id: Int, val name: String, val explanation: String)
 
     val npcs = listOf(
