@@ -89,6 +89,7 @@ class SimulatorEngine(
             AutonomousAction.FISH -> fishIfUseful()
             AutonomousAction.REFINE -> refineOneMaterial()
             AutonomousAction.CRAFT -> craftOneItem()
+            AutonomousAction.CRAFT_TOOL -> craftFishingRod()
             AutonomousAction.TRADE -> listOrReviewMarket()
         }
         autonomousActionIndex += 1
@@ -258,6 +259,21 @@ class SimulatorEngine(
             EquipmentSlot.MAGIC_ITEM -> "Item Mágico"
         }
         return "$name ${tier.name}"
+    }
+
+    private fun craftFishingRod(): String {
+        if ((inventory["Vara de Pesca T1"] ?: 0) > 0) {
+            return "Aldren já possui uma Vara de Pesca T1; não fabrica outra sem necessidade."
+        }
+        if ((inventory["Prancha T1"] ?: 0) < 1 || (inventory["Tecido T1"] ?: 0) < 1) {
+            return "Fabricação da vara adiada: faltam 1 Prancha T1 e 1 Tecido T1."
+        }
+        inventory.removeItem("Prancha T1", 1)
+        inventory.removeItem("Tecido T1", 1)
+        inventory.addItem("Vara de Pesca T1", 1)
+        skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
+        progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
+        return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
     }
 
     private fun craftOneItem(): String {
