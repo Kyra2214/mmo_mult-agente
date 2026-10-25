@@ -158,16 +158,17 @@ class TierAwareActivityTest {
 
 
 class LongRunSimulationTest {
-    @Test fun unattendedWorldRunsForHundredsOfTicksWithoutInvalidInventory() {
+    @Test fun unattendedAgentReachesTheT3DungeonGateAndKeepsRunning() {
         val engine = SimulatorEngine(stage = SimulatorEngine.TOTAL_STAGES)
-        repeat(500) { engine.tick() }
-        assertEquals(500L, engine.worldTick)
+        repeat(10_000) { engine.tick() }
+        assertEquals(10_000L, engine.worldTick)
         assertTrue(engine.progression.export().values.any { it.totalSuccessfulActions > 0 })
-        assertTrue("Agent should craft and equip at least one item in 500 ticks", engine.equippedGear.isNotEmpty())
+        assertTrue("No equipment after long run. Gear=${engine.equippedGear}; inventory=${engine.inventory}; skills=${engine.progression.export()}",
+            engine.equippedGear.isNotEmpty())
         assertTrue(engine.inventory.values.all { it > 0 })
         assertTrue(engine.log.size <= 120)
-        if (engine.dungeonCompleted) {
-            assertTrue(EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T3.rank })
-        }
+        assertTrue("Agent never reached T3 dungeon gate. Gear=${engine.equippedGear}; skills=${engine.progression.export()}; inventory=${engine.inventory}",
+            engine.dungeonAttempts > 0)
+        assertTrue(EquipmentSlot.entries.all { (engine.equippedGear[it]?.rank ?: 0) >= Tier.T3.rank })
     }
 }
