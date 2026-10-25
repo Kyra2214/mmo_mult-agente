@@ -3,12 +3,61 @@ package com.kyra2214.mmomultiagente
 /** Chooses one useful action from the agent's observed inventory and current opportunities. */
 enum class AutonomousAction { GATHER, HUNT, FISH, REFINE, CRAFT, TRADE }
 
+object EquipmentProgressPlanner {
+    fun targetTier(progression: SkillProgression): Tier {
+        val craftingSkills = EquipmentSlot.entries.map { TierRecipes.recipe(it, Tier.T1).skill }
+        return Tier.fromRank(craftingSkills.minOf { skill ->
+            SkillProgression.highestUnlockedTier(progression.snapshot(skill).level).rank
+        })
+    }
+
+    fun prioritySlot(progression: SkillProgression): EquipmentSlot =
+        EquipmentSlot.entries.minWith(
+            compareBy<EquipmentSlot> { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).level
+            }.thenBy { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).actionsAtCurrentLevel
+            }.thenBy { slot ->
+                progression.snapshot(TierRecipes.recipe(slot, Tier.T1).skill).totalSuccessfulActions
+            }
+        )
+}
+
 object AutonomousDecisionPolicy {
     fun choose(inventory: Map<String, Int>, silver: Int, marketListing: String?, progression: SkillProgression? = null): AutonomousAction {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
-        // Advance one shared equipment tier at a time; all seven specializations
-        // must unlock the next tier before the economy moves the whole set forward.
+        if (progression != null) {
+            val tier = EquipmentProgressPlanner.targetTier(progression)
+            val slot = EquipmentProgressPlanner.prioritySlot(progression)
+            val recipe = TierRecipes.recipe(slot, tier)
+            val missing = recipe.materials.filter { cost ->
+                has(materialDisplayName(cost.itemId), cost.quantity).not()
+            }
+            if (missing.isEmpty() && progression.canPerformTier(recipe.skill, tier)) return AutonomousAction.CRAFT
+
+            val missingLeather = missing.any { it.itemId.startsWith("TANNED_LEATHER_") }
+            if (missingLeather && !has("Couro ${tier.name}")) return AutonomousAction.HUNT
+
+            val requiredRaw = missing.mapNotNull { cost ->
+                val raw = when {
+                    cost.itemId.startsWith("METAL_BAR_") -> "Minério"
+                    cost.itemId.startsWith("TANNED_LEATHER_") -> "Couro"
+                    cost.itemId.startsWith("CLOTH_") -> "Fibra"
+                    cost.itemId.startsWith("PLANK_") -> "Madeira"
+                    cost.itemId.startsWith("ARCANE_COMPONENT_") -> "Fragmento Arcano"
+                    else -> null
+                }
+                raw?.let { "$it ${tier.name}" }
+            }
+            if (requiredRaw.any { has(it) } || refiningInputs.any { (raw, skill) ->
+                    Tier.entries.any { rawTier -> has("$raw ${rawTier.name}") && progression.canPerformTier(skill, rawTier) }
+                }) return AutonomousAction.REFINE
+            return AutonomousAction.GATHER
+        }
+
+        // With a live progression state, solve the least-developed slot first;
+        // gather/refine its exact missing inputs instead of crafting a surplus slot.
         val targetTier = equipmentTargetTier(progression)
         val affordableEquipment = TierRecipes.fullSet(targetTier).any { recipe ->
             (progression == null || progression.canPerformTier(recipe.skill, targetTier)) &&
