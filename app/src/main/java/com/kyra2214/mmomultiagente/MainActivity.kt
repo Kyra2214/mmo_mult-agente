@@ -112,10 +112,11 @@ class MainActivity : Activity() {
             else engine.inventory.entries.joinToString { it.value.toString() + "× " + it.key }
         val chestText = if (engine.chest.isEmpty()) "vazio"
             else engine.chest.entries.joinToString { it.value.toString() + "× " + it.key }
+        val gearText = if (engine.equippedGear.isEmpty()) "nenhum" else engine.equippedGear.entries.joinToString { (slot, tier) -> slot.name + ": " + tier.name }
         val listing = engine.marketListing?.let { "Oferta: " + it + " (aguardando comprador)" } ?: "Sem ofertas publicadas"
         stats.text = "Agente: Aldren   •   Dia: " + (1 + engine.worldTick / 720) + "   •   Tick: " + engine.worldTick + "\nAlzes: " + engine.silver +
             "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/11" +
-            "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
+            "\nEquipamento: " + gearText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
         objective.text = engine.currentObjective
         logView.text = engine.log.mapIndexed { index, line -> (index + 1).toString() + ". " + line }
             .joinToString("\n\n")
