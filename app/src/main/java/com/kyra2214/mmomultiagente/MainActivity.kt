@@ -113,10 +113,16 @@ class MainActivity : Activity() {
         val chestText = if (engine.chest.isEmpty()) "vazio"
             else engine.chest.entries.joinToString { it.value.toString() + "× " + it.key }
         val gearText = if (engine.equippedGear.isEmpty()) "nenhum" else engine.equippedGear.entries.joinToString { (slot, tier) -> slot.name + ": " + tier.name }
+        val progressionText = EquipmentSlot.entries.joinToString { slot ->
+            val skill = TierRecipes.recipe(slot, Tier.T1).skill
+            val snapshot = engine.progression.snapshot(skill)
+            val progress = if (snapshot.level >= SkillProgression.MAX_LEVEL) "máx." else "${snapshot.actionsAtCurrentLevel}/${SkillProgression.actionsRequiredForNextLevel(snapshot.level)}"
+            "${slot.name}: N${snapshot.level} ($progress)"
+        }
         val listing = engine.marketListing?.let { "Oferta: " + it + " (aguardando comprador)" } ?: "Sem ofertas publicadas"
         stats.text = "Agente: Aldren   •   Dia: " + (1 + engine.worldTick / 720) + "   •   Tick: " + engine.worldTick + "\nHP: " + engine.health + "   •   Masmorra T3: " + (if (engine.dungeonCompleted) "concluída" else "tentativas " + engine.dungeonAttempts) + "\nAlzes: " + engine.silver +
             "\nNPCs conhecidos: " + engine.learnedNpcIds.size + "/11" +
-            "\nEquipamento: " + gearText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
+            "\nEquipamento: " + gearText + "\nEspecializações: " + progressionText + "\nInventário: " + inventoryText + "\nBaú: " + chestText + "\n" + listing
         objective.text = engine.currentObjective
         logView.text = engine.log.mapIndexed { index, line -> (index + 1).toString() + ". " + line }
             .joinToString("\n\n")
