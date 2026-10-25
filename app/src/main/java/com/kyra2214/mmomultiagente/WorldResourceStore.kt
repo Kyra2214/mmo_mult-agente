@@ -29,12 +29,12 @@ class WorldResourceStore(initialStocks: Map<String, Int> = DEFAULT_STOCKS) {
 
     companion object {
         val DEFAULT_STOCKS = mapOf(
-            "Minério T1" to 120,
-            "Pedra T1" to 120,
-            "Madeira T1" to 120,
-            "Fibra T1" to 120,
-            "Fragmento Arcano T1" to 60,
-            "Creature T1" to 80,
+            "Minério T1" to 120, "Minério T2" to 90, "Minério T3" to 60,
+            "Pedra T1" to 120, "Pedra T2" to 90, "Pedra T3" to 60,
+            "Madeira T1" to 120, "Madeira T2" to 90, "Madeira T3" to 60,
+            "Fibra T1" to 120, "Fibra T2" to 90, "Fibra T3" to 60,
+            "Fragmento Arcano T1" to 60, "Fragmento Arcano T2" to 45, "Fragmento Arcano T3" to 30,
+            "Creature T1" to 80, "Creature T2" to 60, "Creature T3" to 40,
             "Peixe T1" to 100
         )
 
