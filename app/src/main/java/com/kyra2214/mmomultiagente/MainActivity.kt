@@ -74,16 +74,18 @@ class MainActivity : Activity() {
         agents.forEach { agent ->
             val marker = "economy_opening_balance_recorded"
             if (!agent.preferences.getBoolean(marker, false)) {
-                economyLedger.record(
-                    EconomyEvent(
-                        agentId = agent.id,
-                        tick = agent.engine.worldTick,
-                        type = EconomyEventType.CURRENCY_INITIALIZED,
-                        itemId = "alzes",
-                        quantity = agent.engine.silver.coerceAtLeast(1),
-                        cause = "ledger-opening-balance-baseline"
+                if (agent.engine.silver > 0) {
+                    economyLedger.record(
+                        EconomyEvent(
+                            agentId = agent.id,
+                            tick = agent.engine.worldTick,
+                            type = EconomyEventType.CURRENCY_INITIALIZED,
+                            itemId = "alzes",
+                            quantity = agent.engine.silver,
+                            cause = "ledger-opening-balance-baseline"
+                        )
                     )
-                )
+                }
                 agent.preferences.edit().putBoolean(marker, true).apply()
             }
         }
