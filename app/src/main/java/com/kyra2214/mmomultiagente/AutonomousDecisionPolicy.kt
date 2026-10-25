@@ -4,14 +4,14 @@ package com.kyra2214.mmomultiagente
 enum class AutonomousAction { GATHER, HUNT, FISH, REFINE, CRAFT, TRADE }
 
 object AutonomousDecisionPolicy {
-    fun choose(inventory: Map<String, Int>, silver: Int, marketListing: String?): AutonomousAction {
+    fun choose(inventory: Map<String, Int>, silver: Int, marketListing: String?, progression: SkillProgression? = null): AutonomousAction {
         fun has(item: String, count: Int = 1) = (inventory[item] ?: 0) >= count
 
         // Complete any unlocked T1 equipment recipe before gathering more stock.
-        val affordableEquipment = TierRecipes.fullSet(Tier.T1).any { recipe ->
-            recipe.materials.all { cost ->
-                val item = materialDisplayName(cost.itemId)
-                has(item, cost.quantity)
+        val affordableEquipment = Tier.entries.reversed().any { tier ->
+            TierRecipes.fullSet(tier).any { recipe ->
+                (progression == null || progression.canPerformTier(recipe.skill, tier)) &&
+                    recipe.materials.all { cost -> has(materialDisplayName(cost.itemId), cost.quantity) }
             }
         }
         if (affordableEquipment) return AutonomousAction.CRAFT
@@ -20,9 +20,14 @@ object AutonomousDecisionPolicy {
         }
 
         // Process raw materials when an appropriate refiner can add value.
-        if (has("Minério T1") || has("Madeira T1") || has("Fibra T1") || has("Couro T1")) {
-            return AutonomousAction.REFINE
+        val refinableRawMaterial = Tier.entries.reversed().any { tier ->
+            listOf("Minério", "Madeira", "Fibra", "Couro").any { raw ->
+                has("$raw ${tier.name}") && listOf(
+                    SkillId.ORE_REFINING, SkillId.WOOD_REFINING, SkillId.FIBER_REFINING, SkillId.LEATHER_REFINING
+                ).any { skill -> progression == null || progression.canPerformTier(skill, tier) }
+            }
         }
+        if (refinableRawMaterial) return AutonomousAction.REFINE
 
         // The fishing branch only becomes viable after a rod exists.
         if (has("Vara de Pesca T1") && !has("Peixe T1") && marketListing != "Peixe T1") {
@@ -33,12 +38,29 @@ object AutonomousDecisionPolicy {
         if (has("Peixe T1") && marketListing == null) return AutonomousAction.TRADE
 
         // Avoid gathering if the inventory already has usable processed materials.
-        val lacksMetal = !has("Barra T1", 2)
-        val lacksWood = !has("Prancha T1")
-        val lacksFiber = !has("Fibra T1") && !has("Tecido T1")
-        if (lacksMetal || lacksWood || lacksFiber) return AutonomousAction.GATHER
+        val tieredCraftingNeed = Tier.entries.reversed().any { tier ->
+            (inventory["Barra ${tier.name}"] ?: 0) < 2 ||
+                (inventory["Couro Curtido ${tier.name}"] ?: 0) < 2 ||
+                (inventory["Tecido ${tier.name}"] ?: 0) < 1
+        }
+        if (tieredCraftingNeed && Tier.entries.any { tier -> has("Couro Curtido ${tier.name}", 2) || has("Couro ${tier.name}") }) {
+            val hideTier = Tier.entries.reversed().firstOrNull { tier ->
+                (inventory["Couro Curtido ${tier.name}"] ?: 0) < 2 && !has("Couro ${tier.name}")
+            }
+            if (hideTier != null) return AutonomousAction.HUNT
+        }
 
-        if ((inventory["Couro Curtido T1"] ?: 0) < 2 && !has("Couro T1")) return AutonomousAction.HUNT
+        val lacksTieredResource = Tier.entries.reversed().any { tier ->
+            val canGatherTier = progression == null || listOf(
+                SkillId.MINING, SkillId.WOODCUTTING, SkillId.FIBER_GATHERING
+            ).any { progression.canPerformTier(it, tier) }
+            canGatherTier && (
+                (!has("Barra ${tier.name}", 2) && !has("Minério ${tier.name}")) ||
+                (!has("Prancha ${tier.name}") && !has("Madeira ${tier.name}")) ||
+                (!has("Tecido ${tier.name}") && !has("Fibra ${tier.name}"))
+            )
+        }
+        if (lacksTieredResource) return AutonomousAction.GATHER
         if (silver < 30) return AutonomousAction.HUNT
         return AutonomousAction.TRADE
     }
