@@ -25,6 +25,9 @@ object AutonomousDecisionPolicy {
             return AutonomousAction.FISH
         }
 
+        // Selling is an available goal when there is a real unlisted item.
+        if (has("Peixe T1") && marketListing == null) return AutonomousAction.TRADE
+
         // Avoid gathering if the inventory already has usable processed materials.
         val lacksMetal = !has("Barra T1", 2)
         val lacksWood = !has("Prancha T1")
@@ -32,7 +35,6 @@ object AutonomousDecisionPolicy {
         if (lacksMetal || lacksWood || lacksFiber) return AutonomousAction.GATHER
 
         if (!has("Couro T1") && !has("Couro Curtido T1")) return AutonomousAction.HUNT
-        if (has("Peixe T1") && marketListing == null) return AutonomousAction.TRADE
         if (silver < 30) return AutonomousAction.HUNT
         return AutonomousAction.TRADE
     }
