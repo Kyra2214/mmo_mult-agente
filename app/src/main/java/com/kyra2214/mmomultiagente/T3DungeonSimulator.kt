@@ -71,7 +71,7 @@ object T3DungeonSimulator {
 
                 // Retreat alive if attacks repeatedly fail or HP becomes dangerously low.
                 if (enemyHp > 0 && health > 0 &&
-                    (consecutiveMisses >= 4 || (health <= enemy.damage * 2 && rounds >= 2))) {
+                    (consecutiveMisses >= 4 || health <= enemy.damage * 2)) {
                     encounters += EncounterResult(enemy.name, enemyHp.coerceAtLeast(0), health.coerceAtLeast(0), rounds, false)
                     return T3DungeonResult(DungeonOutcome.WITHDRAWN, health.coerceAtLeast(1), encounters, null)
                 }
