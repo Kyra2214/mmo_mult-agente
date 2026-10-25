@@ -73,8 +73,9 @@ class AutonomousTickTest {
         val engine = SimulatorEngine(inventory = mapOf("Barra T1" to 2, "Couro Curtido T1" to 2, "Tecido T1" to 1))
         repeat(SimulatorEngine.TOTAL_STAGES) { engine.step() }
         engine.tick()
-        assertEquals(Tier.T1, engine.equippedGear[EquipmentSlot.ARMOR])
-        assertEquals(2, engine.skillCraftCounts["armaduras"])
+        assertEquals(Tier.T1, engine.equippedGear[EquipmentSlot.HELMET])
+        assertEquals(1, engine.skillCraftCounts["armaduras"])
+        assertEquals(1, engine.skillCraftCounts["capacetes"])
         assertFalse(engine.inventory.containsKey("Barra T1"))
         assertFalse(engine.inventory.containsKey("Couro Curtido T1"))
         assertFalse(engine.inventory.containsKey("Tecido T1"))
