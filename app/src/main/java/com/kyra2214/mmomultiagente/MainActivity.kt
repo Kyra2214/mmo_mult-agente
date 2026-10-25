@@ -29,10 +29,11 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val tickIntervalMs = 2_000L
     private val sharedMarket = SharedMarketCoordinator()
+    private val economyLedger = EconomyLedger()
     private val runner = object : Runnable {
         override fun run() {
             agents.forEach { agent -> agent.engine.tick() }
-            sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) })
+            sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) }, economyLedger)
             agents.forEach { agent ->
                 agent.engine.saveTo(agent.preferences)
                 agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
@@ -153,6 +154,8 @@ class MainActivity : Activity() {
     private fun renderEvents() {
         addSectionTitle("EVENTOS DO SERVIDOR")
         addPlainText("Eventos recentes de todos os agentes, agrupados numa única linha do tempo. Os logs continuam pertencendo ao agente que executou a ação.")
+        val trades = economyLedger.events.count { it.type == EconomyEventType.TRADE_SETTLED } / 2
+        addInfoCard("ECONOMIA RASTREÁVEL (SESSÃO)\nTransações registradas: $trades\nEventos causais registrados: ${economyLedger.events.size}\nMoeda criada registrada: ${economyLedger.mintedCurrency()} alzes\nMoeda removida registrada: ${economyLedger.burnedCurrency()} alzes")
         recentEvents(100).forEach { (name, event) -> addInfoCard("$name\n$event") }
         if (recentEvents(100).isEmpty()) addPlainText("Ainda não há eventos registrados.")
     }
