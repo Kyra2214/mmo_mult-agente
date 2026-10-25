@@ -1,7 +1,7 @@
 # Plano técnico — Economia emergente, habilidades e agentes autônomos
 
 **Projeto:** MMO Multiagente  
-**Status:** execução iniciada na Fase A; auditoria inicial registrada em `docs/FASE_A_AUDITORIA_INICIAL.md`. Economia compartilhada e fases B/C ainda não implementadas  
+**Status:** Fase A em andamento; auditoria inicial registrada. Coordenador experimental de mercado compartilhado adicionado, mas economia rastreável (B) e mercado transacional completo (C) seguem incompletos  
 **Referência conceitual:** ciclos de progressão e produção de Albion Online, adaptados ao simulador. Não reproduzir literalmente sua árvore de nós, conteúdo protegido ou balanceamento.
 
 ## 1. Objetivo
@@ -249,7 +249,7 @@ Preferir catálogos imutáveis carregados uma vez e estado mutável por agente/r
 
 O protótipo já tem política heurística, progressão por especialização, receitas T1–T4, atividades iniciais, equipamento, masmorra e teste prolongado de 20.000 ticks. Entretanto, a política ainda não é um planejador estratégico geral, o mercado atual usa uma única oferta e há caminhos de geração de recursos que precisam de validação rigorosa.
 
-**Execução atual:** a auditoria inicial foi registrada e a interface de observabilidade foi ampliada para cinco perfis com logs individuais. Isso não conclui a Fase A nem implementa comércio compartilhado. Próximas ações: terminar a auditoria dos caminhos de criação/consumo de recursos, validar a persistência por perfil e então iniciar a Fase B (economia rastreável), seguida da Fase C (mercado multi-oferta transacional). Não expandir ainda agricultura, culinária ou alquimia. Este documento é plano; cada fase exige testes e evidência funcional.
+**Execução atual:** a interface observa cinco perfis e o coordenador experimental já permite algumas compras entre agentes com transferência simultânea de item e alzes. Isso ainda não conclui a Fase A, B ou C: o slot de oferta continua limitado a uma oferta por agente, os critérios de demanda são estreitos, não há livro-caixa causal abrangente e as rotinas de coleta/caça/pesca ainda precisam deixar de criar recursos/moeda sem estoques finitos. Próximo passo prioritário: completar a auditoria de todas as mutações econômicas e introduzir eventos causais e fontes finitas (Fase B); depois ampliar o livro de ofertas, reservas, cancelamento/expiração e testes de concorrência (Fase C). Não expandir ainda agricultura, culinária ou alquimia. Este documento é plano; cada fase exige testes e evidência funcional.
 
 ## Referência conceitual
 
