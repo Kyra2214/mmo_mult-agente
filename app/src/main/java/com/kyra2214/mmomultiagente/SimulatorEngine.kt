@@ -131,6 +131,18 @@ class SimulatorEngine(
     private fun isReadyForT3Dungeon(): Boolean =
         EquipmentSlot.entries.all { slot -> (equippedGear[slot]?.rank ?: 0) >= Tier.T3.rank }
 
+    private fun repairDamagedEquipment(): String? {
+        val entry = gearDamage.entries.filter { it.value > 0 && equippedGear.containsKey(it.key) }
+            .sortedBy { (slot, _) -> equippedGear[slot]?.rank ?: 1 }.firstOrNull() ?: return null
+        val (slot, damage) = entry
+        val tier = equippedGear[slot] ?: return null
+        val cost = 10 * tier.rank * damage
+        if (silver < cost) return null
+        silver -= cost
+        gearDamage[slot] = 0
+        return "Aldren visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
+    }
+
     private fun gatherNeededMaterials(): String {
         data class GatherNeed(val raw: String, val processed: String, val skill: SkillId, val label: String, val batchSize: Int = 1)
         val needs = listOf(
