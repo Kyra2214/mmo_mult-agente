@@ -48,11 +48,11 @@ object AutonomousDecisionPolicy {
         if (needsLeather && !has("Couro ${targetTier.name}")) return AutonomousAction.HUNT
 
         val lacksTargetTierResources =
-            (!has("Barra ${targetTier.name}", 2) && !has("Minério ${targetTier.name}")) ||
-            (!has("Prancha ${targetTier.name}") && !has("Madeira ${targetTier.name}")) ||
-            (!has("Tecido ${targetTier.name}") && !has("Fibra ${targetTier.name}")) ||
+            (!has("Barra ${targetTier.name}", 3) && !has("Minério ${targetTier.name}")) ||
+            (!has("Prancha ${targetTier.name}", 2) && !has("Madeira ${targetTier.name}")) ||
+            (!has("Tecido ${targetTier.name}", 2) && !has("Fibra ${targetTier.name}")) ||
             (!has("Bloco de Pedra ${targetTier.name}") && !has("Pedra ${targetTier.name}")) ||
-            (!has("Componente Arcano ${targetTier.name}") && !has("Fragmento Arcano ${targetTier.name}"))
+            (!has("Componente Arcano ${targetTier.name}", 2) && !has("Fragmento Arcano ${targetTier.name}"))
         if (lacksTargetTierResources) return AutonomousAction.GATHER
 
         if (silver < 30) return AutonomousAction.HUNT
