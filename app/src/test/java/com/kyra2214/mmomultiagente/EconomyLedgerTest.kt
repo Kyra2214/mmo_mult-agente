@@ -18,6 +18,26 @@ class EconomyLedgerTest {
         assertTrue(ledger.forAgent("mira").any { it.type == EconomyEventType.TRADE_SETTLED })
     }
 
+    @Test fun encodedLedgerRestoresEventsAndSkipsCorruptRows() {
+        val original = EconomyLedger()
+        original.record(EconomyEvent(
+            id = "event-1", agentId = "mira", tick = 42,
+            type = EconomyEventType.TRADE_SETTLED, itemId = "Peixe T1",
+            quantity = 3, cause = "shared market", counterpartyId = "borin"
+        ))
+        val encoded = original.encode()
+        val restored = EconomyLedger.decode(encoded + "\nnot-a-valid-event")
+
+        assertEquals(1, restored.events.size)
+        assertEquals("event-1", restored.events.single().id)
+        assertEquals("mira", restored.events.single().agentId)
+        assertEquals(42L, restored.events.single().tick)
+        assertEquals("Peixe T1", restored.events.single().itemId)
+        assertEquals("shared market", restored.events.single().cause)
+        assertEquals("borin", restored.events.single().counterpartyId)
+        assertEquals(3, restored.events.single().quantity)
+    }
+
     @Test fun rejectsInvalidEconomicEvents() {
         val badQuantity = runCatching {
             EconomyEvent(agentId = "mira", tick = 0, type = EconomyEventType.RESOURCE_CREATED, itemId = "Peixe T1", quantity = 0, cause = "test")
