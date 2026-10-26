@@ -138,6 +138,8 @@ class SimulatorEngine(
             else -> 10
         }
         silver += price
+        recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", price, "legacy-market-sale")
+        recordEconomy(EconomyEventType.ITEM_TRANSFERRED, item, 1, "market-escrow-to-system-buyer")
         marketListing = null
         marketPrice = null
         marketListingAgeTicks = 0
@@ -152,6 +154,7 @@ class SimulatorEngine(
         equippedGear.toMap().forEach { (slot, tier) ->
             val damage = (gearDamage[slot] ?: 0) + 1
             if (damage >= 3) {
+                recordEconomy(EconomyEventType.RESOURCE_CONSUMED, equipmentName(slot, tier), 1, "dungeon-wear-destroyed")
                 equippedGear.remove(slot)
                 gearDamage.remove(slot)
                 broken.add(slot.name + " " + tier.name)
@@ -209,6 +212,9 @@ class SimulatorEngine(
             if (!hasRaw && !hasProcessed) {
                 val sourceAvailable = worldResourceStore?.harvest(rawName, need.batchSize) ?: (worldResourceStore == null)
                 if (sourceAvailable) {
+                    if (worldResourceStore != null) {
+                        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, rawName, need.batchSize, "world-stock-harvest")
+                    }
                     inventory.addItem(rawName, need.batchSize)
                     recordEconomy(EconomyEventType.RESOURCE_CREATED, rawName, need.batchSize, "gathering")
                     progression.recordSuccessfulAction(need.skill, tier)
@@ -233,6 +239,9 @@ class SimulatorEngine(
         if (worldResourceStore != null && !worldResourceStore!!.harvest("Creature ${tier.name}", 1)) {
             return "${agentName} procura uma criatura ${tier.name}, mas o estoque local está esgotado. Não recebe couro nem alzes."
         }
+        if (worldResourceStore != null) {
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Creature ${tier.name}", 1, "world-stock-hunt")
+        }
         inventory.addItem("Couro ${tier.name}", 1)
         recordEconomy(EconomyEventType.RESOURCE_CREATED, "Couro ${tier.name}", 1, "hunt")
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
@@ -248,6 +257,9 @@ class SimulatorEngine(
         }
         if (worldResourceStore != null && !worldResourceStore!!.harvest("Peixe T1", 2)) {
             return "${agentName} encontra o ponto de pesca sem estoque suficiente. Não recebe peixes."
+        }
+        if (worldResourceStore != null) {
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Peixe T1", 2, "world-stock-fishing")
         }
         inventory.addItem("Peixe T1", 2)
         recordEconomy(EconomyEventType.RESOURCE_CREATED, "Peixe T1", 2, "fishing")
