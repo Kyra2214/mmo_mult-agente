@@ -39,10 +39,10 @@ class MainActivity : Activity() {
             sharedMarket.tick(agents.map { MarketParticipant(it.id, it.displayName, it.engine) }, economyLedger)
             worldResourcePreferences.edit().putString("stocks", worldResourceStore.encode()).apply()
             economyLedgerPreferences.edit().putString("events", economyLedger.encode()).apply()
-            agents.forEach { agent ->
-                agent.engine.saveTo(agent.preferences)
-                agent.preferences.edit().putLong("last_wall_clock_ms", System.currentTimeMillis()).apply()
-            }
+            agents.forEach { agent -> agent.engine.saveTo(agent.preferences) }
+            getSharedPreferences("mmo_server_clock", MODE_PRIVATE).edit()
+                .putLong("last_server_tick_wall_clock_ms", System.currentTimeMillis())
+                .apply()
             refresh()
             handler.postDelayed(this, tickIntervalMs)
         }
@@ -84,10 +84,12 @@ class MainActivity : Activity() {
                 }
                 prefs.edit().putBoolean(marker, true).apply()
             }
-            catchUpWhileClosed(engine, prefs)
             AgentRuntime(id, name, engine, prefs)
         }
+        catchUpServerWhileClosed()
         economyLedgerPreferences.edit().putString("events", economyLedger.encode()).apply()
+        worldResourcePreferences.edit().putString("stocks", worldResourceStore.encode()).apply()
+        agents.forEach { agent -> agent.engine.saveTo(agent.preferences) }
         buildInterface()
         refresh()
     }
@@ -287,13 +289,21 @@ class MainActivity : Activity() {
         content.addView(card, matchWidth().apply { bottomMargin = dp(8) })
     }
 
-    private fun catchUpWhileClosed(engine: SimulatorEngine, prefs: android.content.SharedPreferences) {
+    /**
+     * Replays missed server ticks as a single world: agents, finite stocks and
+     * shared-market settlements advance together instead of each agent catching up alone.
+     */
+    private fun catchUpServerWhileClosed() {
+        val clock = getSharedPreferences("mmo_server_clock", MODE_PRIVATE)
         val now = System.currentTimeMillis()
-        val last = prefs.getLong("last_wall_clock_ms", now)
+        val last = clock.getLong("last_server_tick_wall_clock_ms", now)
         val elapsedTicks = ((now - last).coerceAtLeast(0L) / tickIntervalMs).coerceAtMost(3600L)
-        repeat(elapsedTicks.toInt()) { engine.tick() }
-        prefs.edit().putLong("last_wall_clock_ms", now).apply()
-        if (elapsedTicks > 0) engine.saveTo(prefs)
+        val participants = agents.map { MarketParticipant(it.id, it.displayName, it.engine) }
+        repeat(elapsedTicks.toInt()) {
+            agents.forEach { it.engine.tick() }
+            sharedMarket.tick(participants, economyLedger)
+        }
+        clock.edit().putLong("last_server_tick_wall_clock_ms", now).apply()
     }
 
     private fun matchWidth() = LinearLayout.LayoutParams(
