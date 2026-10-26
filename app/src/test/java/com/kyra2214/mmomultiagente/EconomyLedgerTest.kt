@@ -65,4 +65,22 @@ class EconomyLedgerTest {
         assertTrue(badQuantity.isFailure)
         assertTrue(badTick.isFailure)
     }
+
+    @Test fun duplicateEventIdIsIgnoredForIdempotentRecovery() {
+        val ledger = EconomyLedger()
+        ledger.record(EconomyEvent(
+            id = "same-event", agentId = "mira", tick = 2,
+            type = EconomyEventType.RESOURCE_CREATED, itemId = "Peixe T1",
+            quantity = 1, cause = "fishing"
+        ))
+        ledger.record(EconomyEvent(
+            id = "same-event", agentId = "mira", tick = 2,
+            type = EconomyEventType.RESOURCE_CREATED, itemId = "Peixe T1",
+            quantity = 1, cause = "replayed-fishing"
+        ))
+
+        assertEquals(1, ledger.events.size)
+        assertEquals("fishing", ledger.events.single().cause)
+        assertEquals(1, ledger.totalCreated("Peixe T1"))
+    }
 }
