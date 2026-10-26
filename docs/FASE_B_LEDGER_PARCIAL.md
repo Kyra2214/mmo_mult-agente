@@ -31,6 +31,7 @@
 ## Additional economic mutation coverage
 
 - Teleporte and equipment repair record currency removal.
+- Finite gathering/hunting/fishing nodes now emit separate stock-consumption events before inventory creation; the legacy periodic market buyer also records its currency and escrow settlement, and equipment destroyed after three unrepaired defeats is recorded as consumed.
 - Fishing-rod recipes record consumed materials and the crafted item.
 - Dungeon loot records item creation; moving items between inventory, chest, and equipment is tracked as an internal transfer rather than creation/consumption.
 - Existing profiles get a one-time opening-balance baseline event, distinct from currency minting.
