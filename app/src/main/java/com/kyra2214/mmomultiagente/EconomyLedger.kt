@@ -40,6 +40,7 @@ data class EconomyEvent(
  */
 class EconomyLedger(initialEvents: Iterable<EconomyEvent> = emptyList()) {
     private val mutableEvents = initialEvents.toMutableList()
+    private val eventIds = mutableEvents.mapTo(mutableSetOf()) { it.id }
     private val encoder = Base64.getUrlEncoder().withoutPadding()
     private val decoder = Base64.getUrlDecoder()
     private fun pack(value: String): String = encoder.encodeToString(value.toByteArray(StandardCharsets.UTF_8))
@@ -48,7 +49,7 @@ class EconomyLedger(initialEvents: Iterable<EconomyEvent> = emptyList()) {
 
     @Synchronized
     fun record(event: EconomyEvent) {
-        mutableEvents.add(event)
+        if (eventIds.add(event.id)) mutableEvents.add(event)
     }
 
     /** Stable text format suitable for SharedPreferences; string fields are URL-safe Base64. */
