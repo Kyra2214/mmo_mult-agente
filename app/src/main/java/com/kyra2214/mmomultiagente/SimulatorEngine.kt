@@ -22,7 +22,9 @@ class SimulatorEngine(
     logEntries: List<String> = listOf(
         "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
         "Objetivo: conhecer a vila e aprender as mecânicas básicas."
-    )
+    ),
+    var agentName: String = "Aldren",
+    var legacyMarketBuyerEnabled: Boolean = true
 ) {
     val inventory = inventory.toMutableMap()
     val chest = chest.toMutableMap()
@@ -31,7 +33,11 @@ class SimulatorEngine(
     var progression = SkillProgression(progressionSnapshots)
     val equippedGear = equippedGear.toMutableMap()
     val gearDamage = gearDamage.toMutableMap()
-    val log = logEntries.toMutableList()
+    val log = logEntries.toMutableList().apply { indices.forEach { i -> this[i] = this[i].replace("Aldren", agentName) } }
+
+    // Injected by the server host so all agents share finite world stocks and emit events.
+    var worldResourceStore: WorldResourceStore? = null
+    var economyEventSink: ((EconomyEvent) -> Unit)? = null
 
     data class Npc(val id: Int, val name: String, val explanation: String)
 
@@ -71,7 +77,7 @@ class SimulatorEngine(
         if (stage < TOTAL_STAGES) return step()
         worldTick += 1
         if (marketListing != null) marketListingAgeTicks += 1
-        resolveMarketBuyer()?.let { message ->
+        (if (legacyMarketBuyerEnabled) resolveMarketBuyer() else null)?.let { message ->
             addLog("Tick $worldTick — $message")
             return message
         }
@@ -86,21 +92,24 @@ class SimulatorEngine(
             health = result.playerHpRemaining
             if (result.outcome == DungeonOutcome.VICTORY) {
                 dungeonCompleted = true
-                result.chest?.lootItemIds?.forEach { inventory.addItem(it, 1) }
-                val message = "Aldren vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
+                result.chest?.lootItemIds?.forEach {
+                    inventory.addItem(it, 1)
+                    recordEconomy(EconomyEventType.RESOURCE_CREATED, it, 1, "dungeon-loot")
+                }
+                val message = "${agentName} vence o mini-chefe e o chefe T3. Abre o baú ${result.chest?.rarity}; itens recebidos: ${result.chest?.lootItemIds?.joinToString()}. A vida continua com ${health} HP."
                 addLog("Tick $worldTick — $message")
                 return message
             }
             if (result.outcome == DungeonOutcome.WITHDRAWN) {
                 health = 100
-                val message = "Aldren percebe que o combate está difícil, recua para uma área segura, sai da masmorra e descansa antes de voltar. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
+                val message = "${agentName} percebe que o combate está difícil, recua para uma área segura, sai da masmorra e descansa antes de voltar. Não perde itens nem prata; tentará novamente quando estiver melhor preparado."
                 addLog("Tick $worldTick — $message")
                 return message
             }
             val wornOut = recordDungeonDefeatWear()
             health = 100
             val brokenText = if (wornOut.isEmpty()) "" else " Itens que precisam ser refeitos: " + wornOut.joinToString() + "."
-            val message = "Aldren é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
+            val message = "${agentName} é derrotado na masmorra T3 após ${result.encounters.lastOrNull()?.name ?: "o combate"}. Não perde itens nem prata pela morte. O desgaste do equipamento aumentou; precisa pagar ao Mestre de Reparos antes de chegar à terceira derrota sem conserto." + brokenText
             addLog("Tick $worldTick — $message")
             return message
         }
@@ -129,6 +138,8 @@ class SimulatorEngine(
             else -> 10
         }
         silver += price
+        recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", price, "legacy-market-sale")
+        recordEconomy(EconomyEventType.ITEM_TRANSFERRED, item, 1, "market-escrow-to-system-buyer")
         marketListing = null
         marketPrice = null
         marketListingAgeTicks = 0
@@ -143,6 +154,7 @@ class SimulatorEngine(
         equippedGear.toMap().forEach { (slot, tier) ->
             val damage = (gearDamage[slot] ?: 0) + 1
             if (damage >= 3) {
+                recordEconomy(EconomyEventType.RESOURCE_CONSUMED, equipmentName(slot, tier), 1, "dungeon-wear-destroyed")
                 equippedGear.remove(slot)
                 gearDamage.remove(slot)
                 broken.add(slot.name + " " + tier.name)
@@ -161,8 +173,9 @@ class SimulatorEngine(
         val cost = 10 * tier.rank * damage
         if (silver < cost) return null
         silver -= cost
+        recordEconomy(EconomyEventType.CURRENCY_BURNED, "alzes", cost, "equipment-repair")
         gearDamage[slot] = 0
-        return "Aldren visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
+        return "${agentName} visita ${repairNpc.name} e conserta ${slot.name} ${tier.name} por $cost alzes. Desgaste zerado; saldo: $silver alzes."
     }
 
     private fun gatherNeededMaterials(): String {
@@ -197,15 +210,24 @@ class SimulatorEngine(
             }
             val hasProcessed = (inventory[processedName] ?: 0) >= requiredProcessed
             if (!hasRaw && !hasProcessed) {
-                inventory.addItem(rawName, need.batchSize)
-                progression.recordSuccessfulAction(need.skill, tier)
-                gathered.add("${need.batchSize} $rawName")
+                val sourceAvailable = worldResourceStore?.harvest(rawName, need.batchSize) ?: (worldResourceStore == null)
+                if (sourceAvailable) {
+                    if (worldResourceStore != null) {
+                        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, rawName, need.batchSize, "world-stock-harvest")
+                    }
+                    inventory.addItem(rawName, need.batchSize)
+                    recordEconomy(EconomyEventType.RESOURCE_CREATED, rawName, need.batchSize, "gathering")
+                    progression.recordSuccessfulAction(need.skill, tier)
+                    gathered.add("${need.batchSize} $rawName")
+                } else {
+                    gathered.add("fonte esgotada: $rawName")
+                }
             }
         }
         return if (gathered.isNotEmpty()) {
-            "Aldren consulta os estoques e coleta recursos compatíveis com suas especializações: ${gathered.joinToString(", ")}."
+            "${agentName} consulta os estoques e coleta recursos compatíveis com suas especializações: ${gathered.joinToString(", ")}."
         } else {
-            "Aldren verifica as fontes disponíveis; não coleta porque já tem matéria-prima ou material processado para as necessidades imediatas."
+            "${agentName} verifica as fontes disponíveis; não coleta porque já tem matéria-prima ou material processado para as necessidades imediatas."
         }
     }
 
@@ -214,30 +236,46 @@ class SimulatorEngine(
         val unlockedTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.SKINNING).level)
         val refiningTier = SkillProgression.highestUnlockedTier(progression.snapshot(SkillId.LEATHER_REFINING).level)
         val tier = Tier.fromRank(minOf(targetTier.rank, unlockedTier.rank, refiningTier.rank))
+        if (worldResourceStore != null && !worldResourceStore!!.harvest("Creature ${tier.name}", 1)) {
+            return "${agentName} procura uma criatura ${tier.name}, mas o estoque local está esgotado. Não recebe couro nem alzes."
+        }
+        if (worldResourceStore != null) {
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Creature ${tier.name}", 1, "world-stock-hunt")
+        }
         inventory.addItem("Couro ${tier.name}", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Couro ${tier.name}", 1, "hunt")
         progression.recordSuccessfulAction(SkillId.SKINNING, tier)
         silver += 5
-        return "Aldren caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
+        recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", 5, "hunt-reward")
+        return "${agentName} caça uma criatura ${tier.name} compatível com seu preparo; obtém 1 Couro ${tier.name} e 5 alzes."
     }
 
     private fun fishIfUseful(): String {
         // Fishing requires a rod. Without one, the agent must gather/refine/craft first.
         if ((inventory["Vara de Pesca T1"] ?: 0) <= 0) {
-            return "Aldren avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
+            return "${agentName} avalia a pesca, mas ainda não tem vara. Adia a atividade e prioriza conseguir os materiais e fabricar a ferramenta."
+        }
+        if (worldResourceStore != null && !worldResourceStore!!.harvest("Peixe T1", 2)) {
+            return "${agentName} encontra o ponto de pesca sem estoque suficiente. Não recebe peixes."
+        }
+        if (worldResourceStore != null) {
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Peixe T1", 2, "world-stock-fishing")
         }
         inventory.addItem("Peixe T1", 2)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Peixe T1", 2, "fishing")
         progression.recordSuccessfulAction(SkillId.FISHING, Tier.T1)
-        return "Aldren usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
+        return "${agentName} usa sua vara em um ponto de pesca e obtém 2 Peixes T1."
     }
 
     private fun listOrReviewMarket(): String {
         if (marketListing == null && inventory.removeItem("Peixe T1", 1)) {
+            recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Peixe T1", 1, "inventory-to-market-escrow")
             marketListing = "Peixe T1"
             marketPrice = 5
             marketListingAgeTicks = 0
-            return "Aldren publica uma oferta de 1 Peixe T1 por 5 alzes. O peixe fica reservado; nenhum alze é recebido antes da venda."
+            return "${agentName} publica uma oferta de 1 Peixe T1 por 5 alzes. O peixe fica reservado; nenhum alze é recebido antes da venda."
         }
-        return "Aldren revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
+        return "${agentName} revisa ofertas e saldo. Sem comprador confirmado, mantém o item reservado e não contabiliza uma venda fictícia."
     }
 
     private fun refineOneMaterial(): String {
@@ -254,11 +292,13 @@ class SimulatorEngine(
         }
         val recipe = recipes.firstOrNull { r ->
             progression.canPerformTier(r.skill, r.tier) && (inventory[r.raw] ?: 0) > 0
-        } ?: return "Aldren consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
+        } ?: return "${agentName} consulta os refinadores, mas não encontra matéria-prima refinável de um tier liberado."
         inventory.removeItem(recipe.raw, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, recipe.raw, 1, "refining")
         inventory.addItem(recipe.output, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, recipe.output, 1, "refining")
         progression.recordSuccessfulAction(recipe.skill, recipe.tier)
-        return "Aldren realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
+        return "${agentName} realiza ${recipe.label} ${recipe.tier.name}: consome 1 ${recipe.raw} e produz 1 ${recipe.output}."
     }
 
     /**
@@ -278,9 +318,13 @@ class SimulatorEngine(
             } + ". Nenhum material foi consumido."
         }
 
-        localizedCosts.forEach { (cost, item) -> inventory.removeItem(item, cost.quantity) }
+        localizedCosts.forEach { (cost, item) ->
+            inventory.removeItem(item, cost.quantity)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, item, cost.quantity, "crafting")
+        }
         val itemName = equipmentName(slot, tier)
         inventory.addItem(itemName, 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, itemName, 1, "crafting")
         val countKey = when (slot) {
             EquipmentSlot.ARMOR -> "armaduras"
             EquipmentSlot.HELMET -> "capacetes"
@@ -294,13 +338,18 @@ class SimulatorEngine(
         val result = progression.recordSuccessfulAction(recipe.skill, tier)
         val oldTier = equippedGear[slot]
         if (oldTier == null || tier.rank > oldTier.rank) {
-            if (oldTier != null) inventory.addItem(equipmentName(slot, oldTier), 1)
+            if (oldTier != null) {
+                val oldItem = equipmentName(slot, oldTier)
+                inventory.addItem(oldItem, 1)
+                recordEconomy(EconomyEventType.ITEM_TRANSFERRED, oldItem, 1, "equipment-to-inventory:${slot.name}")
+            }
             inventory.removeItem(itemName, 1)
+            recordEconomy(EconomyEventType.ITEM_TRANSFERRED, itemName, 1, "inventory-to-equipment:${slot.name}")
             equippedGear[slot] = tier
             // New equipment starts intact; wear belongs to the replaced piece.
             gearDamage.remove(slot)
         }
-        return "Aldren fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
+        return "${agentName} fabrica $itemName com a receita ${tier.name}; materiais consumidos e especialização ${recipe.skill} agora está no nível ${result.afterLevel}."
     }
 
     private fun materialDisplayName(itemId: String): String {
@@ -332,17 +381,20 @@ class SimulatorEngine(
 
     private fun craftFishingRod(): String {
         if ((inventory["Vara de Pesca T1"] ?: 0) > 0) {
-            return "Aldren já possui uma Vara de Pesca T1; não fabrica outra sem necessidade."
+            return "${agentName} já possui uma Vara de Pesca T1; não fabrica outra sem necessidade."
         }
         if ((inventory["Prancha T1"] ?: 0) < 1 || (inventory["Tecido T1"] ?: 0) < 1) {
             return "Fabricação da vara adiada: faltam 1 Prancha T1 e 1 Tecido T1."
         }
         inventory.removeItem("Prancha T1", 1)
         inventory.removeItem("Tecido T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Prancha T1", 1, "tool-crafting")
+        recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Tecido T1", 1, "tool-crafting")
         inventory.addItem("Vara de Pesca T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Vara de Pesca T1", 1, "tool-crafting")
         skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
-        return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
+        return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Tecido T1."
     }
 
     private fun craftOneItem(): String {
@@ -372,12 +424,15 @@ class SimulatorEngine(
             (inventory["Vara de Pesca T1"] ?: 0) <= 0) {
             inventory.removeItem("Prancha T1", 1)
             inventory.removeItem("Fibra T1", 1)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Prancha T1", 1, "tool-crafting")
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, "Fibra T1", 1, "tool-crafting")
             inventory.addItem("Vara de Pesca T1", 1)
+            recordEconomy(EconomyEventType.RESOURCE_CREATED, "Vara de Pesca T1", 1, "tool-crafting")
             skillCraftCounts["ferramentas"] = (skillCraftCounts["ferramentas"] ?: 0) + 1
             progression.recordSuccessfulAction(SkillId.TOOL_CRAFTING, Tier.T1)
-            return "Aldren fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
+            return "${agentName} fabrica uma Vara de Pesca T1 consumindo 1 Prancha T1 e 1 Fibra T1."
         }
-        return "Aldren compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais para o tier-alvo ${targetTier.name}."
+        return "${agentName} compara as receitas e os requisitos de especialização, mas não fabrica: faltam materiais para o tier-alvo ${targetTier.name}."
     }
 
     private fun equipmentTargetTier(): Tier {
@@ -386,7 +441,7 @@ class SimulatorEngine(
 
     fun step(): String {
         if (isComplete) {
-            val message = "Tutorial concluído. Aldren agora pode escolher seus próprios objetivos."
+            val message = "Tutorial concluído. ${agentName} agora pode escolher seus próprios objetivos."
             addLog(message)
             return message
         }
@@ -394,40 +449,47 @@ class SimulatorEngine(
             in 0..10 -> {
                 val npc = npcs[stage]
                 learnedNpcIds.add(npc.id)
-                "Aldren conversa com " + npc.name + ": “" + npc.explanation + "”"
+                "${agentName} conversa com " + npc.name + ": “" + npc.explanation + "”"
             }
             11 -> {
                 learnedNpcIds.add(repairNpc.id)
-                "Aldren conversa com ${repairNpc.name}: “${repairNpc.explanation}”"
+                "${agentName} conversa com ${repairNpc.name}: “${repairNpc.explanation}”"
             }
             12 -> {
                 inventory.addItem("Minério T1", 3)
                 inventory.addItem("Madeira T1", 3)
                 inventory.addItem("Fibra T1", 2)
-                "Coleta concluída: +3 Minério T1, +3 Madeira T1 e +2 Fibra T1. Os recursos vieram de uma fonte disponível."
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Minério T1", 3, "tutorial-starter")
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Madeira T1", 3, "tutorial-starter")
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Fibra T1", 2, "tutorial-starter")
+                "Coleta concluída: +3 Minério T1, +3 Madeira T1 e +2 Fibra T1. Os recursos vieram do pacote inicial do tutorial."
             }
             13 -> {
                 inventory.addItem("Couro T1", 2)
+                recordEconomy(EconomyEventType.RESOURCE_CREATED, "Couro T1", 2, "tutorial-reward")
                 silver += 10
-                "Caçada concluída: criatura T1 derrotada. Aldren recebeu 2 Couros T1 e 10 alzes como recompensa."
+                recordEconomy(EconomyEventType.CURRENCY_MINTED, "alzes", 10, "tutorial-reward")
+                "Caçada concluída: criatura T1 derrotada. ${agentName} recebeu 2 Couros T1 e 10 alzes como recompensa."
             }
             14 -> craftStarterArmor()
             15 -> {
                 if (inventory.removeItem("Fibra T1", 1)) {
                     chest.addItem("Fibra T1", 1)
-                    "Aldren guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
+                    recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Fibra T1", 1, "inventory-to-chest")
+                    "${agentName} guarda 1 Fibra T1 no baú. O item está armazenado, não no inventário carregado."
                 } else {
                     "O baú foi apresentado. Não havia Fibra T1 sobrando; nenhuma quantidade foi criada."
                 }
             }
             16 -> {
                 if (inventory.removeItem("Armadura T1", 1)) {
+                    recordEconomy(EconomyEventType.ITEM_TRANSFERRED, "Armadura T1", 1, "inventory-to-market-escrow")
                     marketListing = "Armadura T1"
                     marketPrice = 25
                     marketListingAgeTicks = 0
-                    "Oferta publicada: Armadura T1 por 25 alzes. O item está reservado na oferta e continua pertencendo a Aldren. Ainda não foi vendido; nenhum dinheiro foi recebido."
+                    "Oferta publicada: Armadura T1 por 25 alzes. O item está reservado na oferta e continua pertencendo a ${agentName}. Ainda não foi vendido; nenhum dinheiro foi recebido."
                 } else {
-                    "Oferta não publicada: Aldren não possui Armadura T1 no inventário."
+                    "Oferta não publicada: ${agentName} não possui Armadura T1 no inventário."
                 }
             }
             17 -> {
@@ -436,15 +498,16 @@ class SimulatorEngine(
                     "Decisão de transporte: ir a pé. O teleporte custa " + cost + " alzes e deixaria pouca reserva. Caminhar leva cerca de 25 minutos simulados; teleporte levaria 1."
                 } else {
                     silver -= cost
+                    recordEconomy(EconomyEventType.CURRENCY_BURNED, "alzes", cost, "teleport")
                     "Decisão de transporte: teleportar por " + cost + " alzes. O custo foi descontado do saldo."
                 }
             }
-            18 -> "Aldren conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
+            18 -> "${agentName} conversa com o NPC da masmorra e aprende a verificar requisitos, riscos e recompensas. A entrada não é forçada."
             else -> "Etapa sem ação definida."
         }
         addLog(message)
         stage += 1
-        if (isComplete) addLog("Quest inicial concluída. A partir de agora, Aldren poderá definir objetivos próprios.")
+        if (isComplete) addLog("Quest inicial concluída. A partir de agora, ${agentName} poderá definir objetivos próprios.")
         return message
     }
 
@@ -456,11 +519,28 @@ class SimulatorEngine(
                 (entry.value - (inventory[entry.key] ?: 0)).toString() + " " + entry.key
             } + ". O motor não criou o item."
         }
-        requirements.forEach { (item, amount) -> inventory.removeItem(item, amount) }
+        requirements.forEach { (item, amount) ->
+            inventory.removeItem(item, amount)
+            recordEconomy(EconomyEventType.RESOURCE_CONSUMED, item, amount, "tutorial-crafting")
+        }
         inventory.addItem("Armadura T1", 1)
+        recordEconomy(EconomyEventType.RESOURCE_CREATED, "Armadura T1", 1, "tutorial-crafting")
         skillCraftCounts["armaduras"] = (skillCraftCounts["armaduras"] ?: 0) + 1
         progression.recordSuccessfulAction(SkillId.ARMOR_CRAFTING, Tier.T1)
-        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. Aldren fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
+        return "Fabricação concluída: 2 Minérios T1 + 1 Couro T1 + 1 Madeira T1 foram consumidos. ${agentName} fabricou 1 Armadura T1; a especialização de armaduras ganhou progresso."
+    }
+
+    private fun recordEconomy(type: EconomyEventType, itemId: String, quantity: Int, cause: String) {
+        economyEventSink?.invoke(
+            EconomyEvent(
+                agentId = agentName.lowercase(),
+                tick = worldTick,
+                type = type,
+                itemId = itemId,
+                quantity = quantity,
+                cause = cause
+            )
+        )
     }
 
     private fun addLog(message: String) {
@@ -487,7 +567,7 @@ class SimulatorEngine(
         dungeonAttempts = 0
         health = 100
         log.clear()
-        log.add("Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.")
+        log.add("Dia 1 começou. ${agentName} recebeu a quest: Aprendendo a sobreviver.")
         log.add("Objetivo: conhecer a vila e aprender as mecânicas básicas.")
     }
 
@@ -520,7 +600,7 @@ class SimulatorEngine(
         const val TOTAL_STAGES = 19
         private const val MAX_LOG_ENTRIES = 120
 
-        fun loadFrom(preferences: android.content.SharedPreferences): SimulatorEngine {
+        fun loadFrom(preferences: android.content.SharedPreferences, agentName: String = "Aldren", legacyMarketBuyerEnabled: Boolean = true): SimulatorEngine {
             val learned = preferences.getString("learned_npcs", "").orEmpty()
                 .split(",").mapNotNull { it.toIntOrNull() }.toSet()
             val savedLog = preferences.getString("log", null)?.split("\u001e")?.filter { it.isNotBlank() }
@@ -565,9 +645,11 @@ class SimulatorEngine(
                     }
                 }.toMap(),
                 logEntries = savedLog ?: listOf(
-                    "Dia 1 começou. Aldren recebeu a quest: Aprendendo a sobreviver.",
+                    "Dia 1 começou. ${agentName} recebeu a quest: Aprendendo a sobreviver.",
                     "Objetivo: conhecer a vila e aprender as mecânicas básicas."
-                )
+                ),
+                agentName = agentName,
+                legacyMarketBuyerEnabled = legacyMarketBuyerEnabled
             )
         }
 

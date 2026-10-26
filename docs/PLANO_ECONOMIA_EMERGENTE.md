@@ -1,7 +1,7 @@
 # Plano técnico — Economia emergente, habilidades e agentes autônomos
 
 **Projeto:** MMO Multiagente  
-**Status:** proposta de arquitetura e sequência de implementação; ainda não implementado  
+**Status:** Fase A registrada; Fase B em implementação com estoques finitos, ledger persistente e cobertura econômica ampliada. Auditoria/reconciliação de todas as mutações ainda pendente; mercado compartilhado é experimental e a Fase C segue incompleta  
 **Referência conceitual:** ciclos de progressão e produção de Albion Online, adaptados ao simulador. Não reproduzir literalmente sua árvore de nós, conteúdo protegido ou balanceamento.
 
 ## 1. Objetivo
@@ -172,6 +172,9 @@ Preferir catálogos imutáveis carregados uma vez e estado mutável por agente/r
 **Aceite:** mapa dos modelos e fluxos existentes; riscos documentados; testes atuais identificados; nenhuma funcionalidade declarada pronta sem evidência.
 
 ### Fase B — Economia rastreável
+
+**Estado atual do código:** ledger tipado e persistido em preferências do servidor; eventos de abertura de saldo separados de emissão monetária; estoques compartilhados finitos; eventos instrumentados para coleta, caça, pesca, refino, fabricação, loot, teleporte, reparos e transferências entre inventário, baú, equipamento e escrow de mercado. Ainda não há prova de cobertura total nem reconciliação/replay entre ledger e todos os estados persistidos. CI deve validar o head atual antes de considerar esta fatia aceita.
+
 - Eliminar geração arbitrária de materiais.
 - Implementar fontes finitas e eventos de coleta, caça e pesca.
 - Definir receitas de múltiplos ingredientes.
@@ -249,7 +252,7 @@ Preferir catálogos imutáveis carregados uma vez e estado mutável por agente/r
 
 O protótipo já tem política heurística, progressão por especialização, receitas T1–T4, atividades iniciais, equipamento, masmorra e teste prolongado de 20.000 ticks. Entretanto, a política ainda não é um planejador estratégico geral, o mercado atual usa uma única oferta e há caminhos de geração de recursos que precisam de validação rigorosa.
 
-**Próxima ação recomendada:** executar a Fase A como auditoria de código, em seguida corrigir economia rastreável e mercado multi-oferta antes de expandir o catálogo de alimentos, fazendas e poções. Este documento é plano, não evidência de implementação concluída.
+**Execução atual:** a interface observa cinco perfis e o coordenador experimental já permite algumas compras entre agentes com transferência simultânea de item e alzes. Isso ainda não conclui a Fase A, B ou C: o slot de oferta continua limitado a uma oferta por agente, os critérios de demanda são estreitos, não há livro-caixa causal abrangente e as rotinas de coleta/caça/pesca ainda precisam deixar de criar recursos/moeda sem estoques finitos. Próximo passo prioritário: completar a auditoria de todas as mutações econômicas e introduzir eventos causais e fontes finitas (Fase B); depois ampliar o livro de ofertas, reservas, cancelamento/expiração e testes de concorrência (Fase C). Não expandir ainda agricultura, culinária ou alquimia. Este documento é plano; cada fase exige testes e evidência funcional.
 
 ## Referência conceitual
 
