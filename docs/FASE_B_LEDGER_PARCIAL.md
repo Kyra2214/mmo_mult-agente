@@ -6,6 +6,7 @@
 - Cada evento exige agente, tick não negativo, item/identificador, quantidade positiva e causa.
 - Eventos distintos para moeda inicial de referência (`CURRENCY_INITIALIZED`), emissão (`CURRENCY_MINTED`) e remoção (`CURRENCY_BURNED`), para não confundir saldo de abertura com dinheiro criado durante a simulação.
 - `ITEM_TRANSFERRED` registra movimentações internas para baú/equipamento e a reserva/liberação de itens no escrow do mercado sem contá-las como produção ou consumo de recurso.
+- `CURRENCY_TRANSFERRED` registra o pagamento entre comprador e vendedor sem classificá-lo como emissão ou queima; a liquidação do mercado registra pagamento, transferência do item e os dois lados da transação.
 - Reparos, teleporte, fabricação da vara de pesca, loot da masmorra e reserva/liquidação de itens de mercado agora emitem eventos econômicos.
 - O coordenador de mercado registra a transação no ledger para comprador e vendedor.
 - A tela Eventos mostra a quantidade de liquidações e informa o escopo limitado do ledger.
