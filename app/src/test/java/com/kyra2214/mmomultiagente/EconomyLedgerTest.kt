@@ -48,6 +48,10 @@ class EconomyLedgerTest {
             agentId = "aldren", tick = 1, type = EconomyEventType.ITEM_TRANSFERRED,
             itemId = "Armadura T1", quantity = 1, cause = "inventory-to-equipment:ARMOR"
         ))
+        ledger.record(EconomyEvent(
+            agentId = "aldren", tick = 0, type = EconomyEventType.ITEM_INITIALIZED,
+            itemId = "Peixe T1", quantity = 4, cause = "ledger-opening-inventory-baseline"
+        ))
 
         assertEquals(0, ledger.mintedCurrency())
         assertEquals(0, ledger.burnedCurrency())
