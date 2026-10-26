@@ -39,7 +39,7 @@ data class EconomyEvent(
  * Malformed rows are skipped during recovery so one damaged row cannot discard the full history.
  */
 class EconomyLedger(initialEvents: Iterable<EconomyEvent> = emptyList()) {
-    private val mutableEvents = initialEvents.toMutableList()
+    private val mutableEvents = initialEvents.distinctBy { it.id }.toMutableList()
     private val eventIds = mutableEvents.mapTo(mutableSetOf()) { it.id }
     private val encoder = Base64.getUrlEncoder().withoutPadding()
     private val decoder = Base64.getUrlDecoder()
