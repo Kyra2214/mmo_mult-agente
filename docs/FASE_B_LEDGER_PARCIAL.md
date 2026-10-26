@@ -14,10 +14,10 @@
 
 ## Limitações conhecidas
 
-- O ledger agora é serializado em `SharedPreferences` do servidor e recuperado na abertura do app. Linhas inválidas são ignoradas durante a recuperação; ainda não existe reconciliação/replay com os saldos e inventários dos agentes.
+- O ledger agora é serializado em `SharedPreferences` do servidor e recuperado na abertura do app. Linhas inválidas são ignoradas durante a recuperação e IDs duplicados são deduplicados. Ainda não existe reconciliação/replay integral do histórico contra saldos, inventários, baús, equipamentos e ofertas persistidos.
 - A instrumentação ainda precisa de auditoria por mutação para garantir que todo caminho esteja coberto, incluindo mudanças de equipamento e estados salvos legados.
-- Não existe um estoque natural compartilhado finito; por isso ainda há caminhos em que a produção pode gerar itens diretamente.
-- Os saldos iniciais de perfis existentes recebem um evento de referência ao iniciar o ledger; isso não é emissão monetária. Ainda falta uma reconciliação integral entre todos os saldos/inventários persistidos e o histórico.
+- Há estoques naturais compartilhados finitos para recursos de coleta T1-T3, criaturas T1-T3 e peixe T1. Eles não regeneram nem variam por localização; pacotes/recompensas roteirizados continuam sendo fontes explícitas separadas.
+- Os saldos iniciais de perfis existentes recebem um evento de referência ao iniciar o ledger; isso não é emissão monetária. A retomada offline agora avança agentes e coordenador de mercado em ticks compartilhados, com limite de 3.600 ticks por abertura; ainda falta reconciliação integral entre todos os saldos/inventários persistidos e o histórico.
 - A UI não deve apresentar o ledger atual como balanço econômico total.
 
 ## Próximos critérios de aceite
@@ -25,7 +25,7 @@
 1. Cada mutação de inventário ou saldo deve emitir evento causal.
 2. Transferências de comércio devem gerar eventos pareados sem contar transferência como criação de moeda.
 3. Estoques do mundo devem ser finitos, compartilhados e atualizados de forma determinística.
-4. **Parcialmente atendido:** o histórico sobrevive a reinício; ainda falta reconciliar o histórico com saldos/quantidades dos agentes e testar reinicialização do app no dispositivo.
+4. **Parcialmente atendido:** o histórico sobrevive a reinício e a retomada offline reexecuta os ticks compartilhados; ainda falta reconciliar o histórico com saldos/quantidades dos agentes e validar a recuperação no dispositivo.
 5. Testes devem verificar conservação de itens e moeda em compra, fabricação, refino, recompensa, reparo e falha de ação.
 
 
