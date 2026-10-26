@@ -73,6 +73,7 @@ class EconomicMutationCoverageTest {
             marketListing = "Peixe T1",
             marketPrice = 5,
             marketListingAgeTicks = 4,
+            worldTick = 4L,
             legacyMarketBuyerEnabled = true
         )
         engine.economyEventSink = events::add
