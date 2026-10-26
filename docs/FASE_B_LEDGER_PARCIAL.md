@@ -5,6 +5,7 @@
 - Modelo de evento tipado em `EconomyLedger.kt`.
 - Cada evento exige agente, tick não negativo, item/identificador, quantidade positiva e causa.
 - Eventos distintos para moeda inicial de referência (`CURRENCY_INITIALIZED`), emissão (`CURRENCY_MINTED`) e remoção (`CURRENCY_BURNED`), para não confundir saldo de abertura com dinheiro criado durante a simulação.
+- `ITEM_INITIALIZED` registra um snapshot único do inventário, baú, equipamento e item em escrow existentes na primeira abertura do ledger para cada perfil; esse baseline não conta como produção ou consumo.
 - `ITEM_TRANSFERRED` registra movimentações internas para baú/equipamento e a reserva/liberação de itens no escrow do mercado sem contá-las como produção ou consumo de recurso.
 - `CURRENCY_TRANSFERRED` registra o pagamento entre comprador e vendedor sem classificá-lo como emissão ou queima; a liquidação do mercado registra pagamento, transferência do item e os dois lados da transação.
 - Reparos, teleporte, fabricação da vara de pesca, loot da masmorra e reserva/liquidação de itens de mercado agora emitem eventos econômicos.
@@ -17,7 +18,7 @@
 - O ledger agora é serializado em `SharedPreferences` do servidor e recuperado na abertura do app. Linhas inválidas são ignoradas durante a recuperação e IDs duplicados são deduplicados. Ainda não existe reconciliação/replay integral do histórico contra saldos, inventários, baús, equipamentos e ofertas persistidos.
 - A instrumentação ainda precisa de auditoria por mutação para garantir que todo caminho esteja coberto, incluindo mudanças de equipamento e estados salvos legados.
 - Há estoques naturais compartilhados finitos para recursos de coleta T1-T3, criaturas T1-T3 e peixe T1. Eles não regeneram nem variam por localização; pacotes/recompensas roteirizados continuam sendo fontes explícitas separadas.
-- Os saldos iniciais de perfis existentes recebem um evento de referência ao iniciar o ledger; isso não é emissão monetária. A retomada offline agora avança agentes e coordenador de mercado em ticks compartilhados, com limite de 3.600 ticks por abertura; ainda falta reconciliação integral entre todos os saldos/inventários persistidos e o histórico.
+- Os saldos e itens iniciais de perfis existentes recebem eventos de baseline separados; eles não são emissão monetária nem produção de itens. A retomada offline agora avança agentes e coordenador de mercado em ticks compartilhados, com limite de 3.600 ticks por abertura; ainda falta reconciliação integral entre todos os saldos/inventários persistidos e o histórico.
 - A UI não deve apresentar o ledger atual como balanço econômico total.
 
 ## Próximos critérios de aceite
