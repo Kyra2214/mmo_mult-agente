@@ -61,6 +61,15 @@ class SharedMarketCoordinator {
 
             buyer.engine.silver -= offer.unitPrice
             seller.engine.silver += offer.unitPrice
+            ledger?.record(EconomyEvent(
+                agentId = buyer.id,
+                tick = buyer.engine.worldTick,
+                type = EconomyEventType.CURRENCY_TRANSFERRED,
+                itemId = "alzes",
+                quantity = offer.unitPrice,
+                cause = "market-payment",
+                counterpartyId = seller.id
+            ))
             buyer.engine.inventory[offer.itemId] =
                 (buyer.engine.inventory[offer.itemId] ?: 0) + 1
             seller.engine.marketListing = null
