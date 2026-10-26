@@ -84,6 +84,39 @@ class MainActivity : Activity() {
                 }
                 prefs.edit().putBoolean(marker, true).apply()
             }
+            val itemSnapshotMarker = "economy_opening_items_recorded"
+            if (!prefs.getBoolean(itemSnapshotMarker, false)) {
+                engine.inventory.forEach { (item, quantity) ->
+                    economyLedger.record(EconomyEvent(
+                        agentId = id, tick = engine.worldTick,
+                        type = EconomyEventType.ITEM_INITIALIZED, itemId = item,
+                        quantity = quantity, cause = "ledger-opening-inventory-baseline"
+                    ))
+                }
+                engine.chest.forEach { (item, quantity) ->
+                    economyLedger.record(EconomyEvent(
+                        agentId = id, tick = engine.worldTick,
+                        type = EconomyEventType.ITEM_INITIALIZED, itemId = item,
+                        quantity = quantity, cause = "ledger-opening-chest-baseline"
+                    ))
+                }
+                engine.equippedGear.forEach { (slot, tier) ->
+                    economyLedger.record(EconomyEvent(
+                        agentId = id, tick = engine.worldTick,
+                        type = EconomyEventType.ITEM_INITIALIZED,
+                        itemId = equipmentItemName(slot, tier),
+                        quantity = 1, cause = "ledger-opening-equipped-baseline:" + slot.name
+                    ))
+                }
+                engine.marketListing?.let { item ->
+                    economyLedger.record(EconomyEvent(
+                        agentId = id, tick = engine.worldTick,
+                        type = EconomyEventType.ITEM_INITIALIZED, itemId = item,
+                        quantity = 1, cause = "ledger-opening-market-escrow-baseline"
+                    ))
+                }
+                prefs.edit().putBoolean(itemSnapshotMarker, true).apply()
+            }
             AgentRuntime(id, name, engine, prefs)
         }
         catchUpServerWhileClosed()
@@ -293,6 +326,19 @@ class MainActivity : Activity() {
      * Replays missed server ticks as a single world: agents, finite stocks and
      * shared-market settlements advance together instead of each agent catching up alone.
      */
+    private fun equipmentItemName(slot: EquipmentSlot, tier: Tier): String {
+        val label = when (slot) {
+            EquipmentSlot.ARMOR -> "Armadura"
+            EquipmentSlot.HELMET -> "Capacete"
+            EquipmentSlot.GLOVES -> "Luvas"
+            EquipmentSlot.BOOTS -> "Botas"
+            EquipmentSlot.WEAPON -> "Arma"
+            EquipmentSlot.OFF_HAND -> "Mão Secundária"
+            EquipmentSlot.MAGIC_ITEM -> "Item Mágico"
+        }
+        return label + " " + tier.name
+    }
+
     private fun catchUpServerWhileClosed() {
         val clock = getSharedPreferences("mmo_server_clock", MODE_PRIVATE)
         val now = System.currentTimeMillis()
